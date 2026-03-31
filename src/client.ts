@@ -5,6 +5,10 @@ import { KnowledgeBasesResource } from './resources/knowledge-bases.js'
 import { McpResource } from './resources/mcp.js'
 import { CrewsResource } from './resources/crews.js'
 import { ConnectionsResource } from './resources/connections.js'
+import { VoiceResource } from './resources/voice.js'
+import { MemoryResource } from './resources/memory.js'
+import { FlowsResource } from './resources/flows.js'
+import { ProjectsResource } from './resources/projects.js'
 
 export interface ThinkFleetOptions {
   /** API key in the format `sk-XXXXX...` */
@@ -28,6 +32,10 @@ export class ThinkFleet {
   readonly mcp: McpResource
   readonly crews: CrewsResource
   readonly connections: ConnectionsResource
+  readonly voice: VoiceResource
+  readonly memory: MemoryResource
+  readonly flows: FlowsResource
+  readonly projects: ProjectsResource
 
   constructor(options: ThinkFleetOptions) {
     if (!options.apiKey) {
@@ -52,5 +60,9 @@ export class ThinkFleet {
     this.mcp = new McpResource(http)
     this.crews = new CrewsResource(http)
     this.connections = new ConnectionsResource(http)
+    this.voice = new VoiceResource(http)
+    this.memory = new MemoryResource(http)
+    this.flows = new FlowsResource(http, options.projectId)
+    this.projects = new ProjectsResource(http)
   }
 }

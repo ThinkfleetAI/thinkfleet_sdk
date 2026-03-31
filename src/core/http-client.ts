@@ -53,6 +53,39 @@ export class HttpClient {
     }, requestOptions)
   }
 
+  /** POST that returns raw binary data (ArrayBuffer) instead of JSON */
+  async postRaw(path: string, body?: unknown, requestOptions?: RequestOptions): Promise<ArrayBuffer> {
+    const url = this.buildUrl(path, undefined, requestOptions)
+    const timeout = requestOptions?.timeout ?? this.options.timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    try {
+      const response = await this.options.fetchFn(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.options.apiKey}`,
+        },
+        body: body != null ? JSON.stringify(body) : undefined,
+        signal: requestOptions?.signal ?? controller.signal,
+      })
+      clearTimeout(timeoutId)
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => '')
+        throw new ThinkFleetError(errorBody || `HTTP ${response.status}`, response.status, 'REQUEST_FAILED')
+      }
+      return await response.arrayBuffer()
+    }
+    catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof ThinkFleetError) throw error
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new TimeoutError(`Request timed out after ${timeout}ms`)
+      }
+      throw new ThinkFleetError(`Network error: ${(error as Error).message}`, 0, 'NETWORK_ERROR')
+    }
+  }
+
   private buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>, requestOptions?: RequestOptions): string {
     const base = requestOptions?.rawPath
       ? `${this.options.baseUrl}/api/v1${path}`

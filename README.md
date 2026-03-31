@@ -243,6 +243,24 @@ try {
 
 Error classes: `AuthenticationError` (401), `AuthorizationError` (403), `NotFoundError` (404), `ValidationError` (400), `RateLimitError` (429), `ServerError` (5xx), `TimeoutError`.
 
+## Examples
+
+Working examples in the [`examples/`](./examples) directory:
+
+| Example | Description |
+|---------|-------------|
+| [agent-chat](./examples/agent-chat) | Interactive CLI chat with any agent |
+| [kb-search](./examples/kb-search) | Search across knowledge bases |
+| [flow-management](./examples/flow-management) | Create, list, rename, and delete flows |
+
+Run any example:
+
+```bash
+export THINKFLEET_API_KEY="sk-..."
+export THINKFLEET_PROJECT_ID="..."
+npx tsx examples/agent-chat/index.ts
+```
+
 ## Requirements
 
 - Node.js 18+ (uses native `fetch`)

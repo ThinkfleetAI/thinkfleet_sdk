@@ -22,6 +22,17 @@ export { KnowledgeBasesResource, KnowledgeBaseDocumentsResource, KnowledgeBaseSo
 export { McpResource, McpIntegrationsResource, McpExternalServersResource } from './resources/mcp.js'
 export { CrewsResource, CrewColumnsResource, CrewTasksResource } from './resources/crews.js'
 export { ConnectionsResource, ComposioIntegrationsResource } from './resources/connections.js'
+export { VoiceResource } from './resources/voice.js'
+export { MemoryResource, AdminMemoryResource, ProjectMemoryResource } from './resources/memory.js'
+export { FlowsResource } from './resources/flows.js'
+export { ProjectsResource } from './resources/projects.js'
+
+// Types — Memory (backward-compatible + new)
+export type {
+  MemorySearchResponse,
+  SaveMemoryRequest,
+  SaveMemoryResponse,
+} from './resources/memory.js'
 
 // Types — Agents
 export type {
@@ -154,6 +165,62 @@ export type {
   FinalizeIntegrationResponse,
   ComposioAction,
 } from './types/connections.js'
+
+// Types — Voice
+export type { VoiceCatalogEntry, SynthesizeVoiceRequest } from './types/voice.js'
+export {
+  DEEPGRAM_VOICES,
+  ELEVENLABS_VOICES,
+  OPENAI_VOICES,
+  ALL_VOICES,
+  getVoicesByProvider,
+  getDefaultVoiceId,
+} from './types/voice.js'
+
+// Types — Flows
+export type {
+  Flow,
+  PopulatedFlow,
+  FlowVersion,
+  CreateFlowRequest,
+  ListFlowsParams,
+  CountFlowsParams,
+  FlowOperationRequest,
+  UpdateFlowStatusRequest,
+  UpdateFlowNameRequest,
+  UpdateFlowFolderRequest,
+} from './types/flows.js'
+export { FlowStatus } from './types/flows.js'
+
+// Types — Memory (full)
+export type {
+  MemoryItem,
+  CreateMemoryRequest,
+  UpdateMemoryRequest,
+  ConfirmMemoryRequest,
+  PromoteMemoryRequest,
+  MemorySearchRequest,
+  MemorySearchResult,
+  MemoryFeedback,
+  SubmitFeedbackRequest,
+  ListMemoryParams,
+  MemoryStats,
+} from './types/memory.js'
+export {
+  MemoryItemType,
+  MemoryScope,
+  MemoryStatus,
+  MemoryImpact,
+  MemoryFeedbackRating,
+} from './types/memory.js'
+
+// Types — Projects
+export type {
+  Project,
+  ProjectPlan,
+  CreateProjectRequest,
+  UpdateProjectRequest,
+} from './types/projects.js'
 
 // Types — Common
 export type { BaseModel } from './types/common.js'

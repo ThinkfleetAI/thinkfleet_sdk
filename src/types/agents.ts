@@ -106,12 +106,23 @@ export interface Agent extends BaseModel {
   temperature?: number
   maxTokens?: number
   maxSteps?: number
+  contextWindow?: number
   workerRuntime?: WorkerRuntime
   reasoningMode?: boolean
+  // Voice
   voiceEnabled?: boolean
   voiceConfig?: VoiceConfig | null
+  // Self-reflection
   reflectionEnabled?: boolean
   reflectionDepth?: number
+  // Heartbeat (scheduled proactive messages)
+  heartbeatEnabled?: boolean
+  heartbeatIntervalMinutes?: number
+  heartbeatPrompt?: string | null
+  heartbeatActiveHoursStart?: string | null
+  heartbeatActiveHoursEnd?: string | null
+  heartbeatTimezone?: string
+  heartbeatTargetChannelId?: string | null
 }
 
 export interface PopulatedAgent extends Agent {
@@ -131,6 +142,7 @@ export interface CreateAgentRequest {
   temperature?: number
   maxTokens?: number
   maxSteps?: number
+  contextWindow?: number
   workerRuntime?: WorkerRuntime
   reasoningMode?: boolean
   voiceEnabled?: boolean
@@ -151,12 +163,20 @@ export interface UpdateAgentRequest {
   temperature?: number
   maxTokens?: number
   maxSteps?: number
+  contextWindow?: number
   workerRuntime?: WorkerRuntime
   reasoningMode?: boolean
   voiceEnabled?: boolean
   voiceConfig?: VoiceConfig | null
   reflectionEnabled?: boolean
   reflectionDepth?: number
+  heartbeatEnabled?: boolean
+  heartbeatIntervalMinutes?: number
+  heartbeatPrompt?: string | null
+  heartbeatActiveHoursStart?: string | null
+  heartbeatActiveHoursEnd?: string | null
+  heartbeatTimezone?: string
+  heartbeatTargetChannelId?: string | null
 }
 
 export interface ChatRequest {
