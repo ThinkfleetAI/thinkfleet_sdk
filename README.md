@@ -121,7 +121,7 @@ Connect third-party services via OAuth — works in mobile and desktop apps.
 // One-liner: initiate → open browser → poll → finalize
 const result = await client.connections.connect(
   {
-    pieceName: '@activepieces/piece-gmail',
+    pieceName: 'piece-gmail',
     projectId: 'your-project-id',
     displayName: 'Gmail',
   },
@@ -138,7 +138,7 @@ Or step-by-step for more control:
 ```typescript
 // 1. Get OAuth URL
 const { redirectUrl, composioAccountId } = await client.connections.initiate({
-  pieceName: '@activepieces/piece-gmail',
+  pieceName: 'piece-gmail',
   projectId: 'your-project-id',
   displayName: 'Gmail',
 })
@@ -157,7 +157,7 @@ do {
 if (status === 'ACTIVE') {
   await client.connections.finalize({
     composioAccountId,
-    pieceName: '@activepieces/piece-gmail',
+    pieceName: 'piece-gmail',
     projectId: 'your-project-id',
     displayName: 'Gmail',
   })
@@ -175,7 +175,7 @@ const integrations = await client.mcp.integrations.list()
 
 // Add an integration
 await client.mcp.integrations.add({
-  pieceName: '@activepieces/piece-slack',
+  pieceName: 'piece-slack',
   pieceVersion: '0.1.0',
   actionName: 'send_message',
 })
