@@ -1,5 +1,6 @@
 import type { HttpClient } from '../core/http-client.js'
 import type { RequestOptions } from '../core/types.js'
+import { normalizePieceName } from '../core/piece-name.js'
 import type {
   McpServer,
   PopulatedMcpServer,
@@ -21,11 +22,11 @@ export class McpIntegrationsResource {
   }
 
   async add(body: AddIntegrationRequest, options?: RequestOptions): Promise<McpIntegration> {
-    return this.http.post<McpIntegration>('/mcp-server/piece-tools', body, options)
+    return this.http.post<McpIntegration>('/mcp-server/piece-tools', { ...body, pieceName: normalizePieceName(body.pieceName) }, options)
   }
 
   async batchAdd(body: BatchAddIntegrationRequest, options?: RequestOptions): Promise<McpIntegration[]> {
-    return this.http.post<McpIntegration[]>('/mcp-server/piece-tools/batch', body, options)
+    return this.http.post<McpIntegration[]>('/mcp-server/piece-tools/batch', { ...body, pieceName: normalizePieceName(body.pieceName) }, options)
   }
 
   async update(toolId: string, body: UpdateIntegrationRequest, options?: RequestOptions): Promise<McpIntegration> {

@@ -141,9 +141,9 @@ export interface ListMemoryParams {
 }
 
 export interface MemoryStats {
-  total: number
-  pendingReview: number
-  flagged: number
+  totalCount: number
+  pendingCount: number
+  confirmedCount: number
   byScope: Record<string, number>
-  byStatus: Record<string, number>
+  byType: Record<string, number>
 }

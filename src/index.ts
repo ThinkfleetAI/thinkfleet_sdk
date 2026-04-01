@@ -14,6 +14,7 @@ export {
 } from './core/errors.js'
 
 export type { SeekPage, RequestOptions } from './core/types.js'
+export { normalizePieceName } from './core/piece-name.js'
 
 // Resources
 export { AgentsResource, AgentToolsResource } from './resources/agents.js'
@@ -189,6 +190,8 @@ export type {
   UpdateFlowStatusRequest,
   UpdateFlowNameRequest,
   UpdateFlowFolderRequest,
+  RunFlowRequest,
+  FlowRunResponse,
 } from './types/flows.js'
 export { FlowStatus } from './types/flows.js'
 

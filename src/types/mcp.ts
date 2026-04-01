@@ -41,6 +41,7 @@ export interface PopulatedMcpServer extends McpServer {
 
 // Requests
 export interface AddIntegrationRequest {
+  /** Short piece name, e.g. "gmail", "slack", "google-sheets" */
   pieceName: string
   pieceVersion: string
   actionName: string
@@ -50,6 +51,7 @@ export interface AddIntegrationRequest {
 }
 
 export interface BatchAddIntegrationRequest {
+  /** Short piece name, e.g. "gmail", "slack", "google-sheets" */
   pieceName: string
   pieceVersion: string
   connectionId?: string

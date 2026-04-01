@@ -1,5 +1,6 @@
 import type { HttpClient } from '../core/http-client.js'
 import type { RequestOptions } from '../core/types.js'
+import { normalizePieceName } from '../core/piece-name.js'
 import type {
   Agent,
   PopulatedAgent,
@@ -19,7 +20,7 @@ export class AgentToolsResource {
   constructor(private readonly http: HttpClient) {}
 
   async addIntegration(agentId: string, body: AddIntegrationToolRequest, options?: RequestOptions): Promise<AgentTool> {
-    return this.http.post<AgentTool>(`/chatbots/${agentId}/tools`, { ...body, type: 'PIECE' }, options)
+    return this.http.post<AgentTool>(`/chatbots/${agentId}/tools`, { ...body, type: 'PIECE', pieceName: normalizePieceName(body.pieceName) }, options)
   }
 
   async addFlow(agentId: string, body: AddFlowToolRequest, options?: RequestOptions): Promise<AgentTool> {

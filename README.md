@@ -121,7 +121,7 @@ Connect third-party services via OAuth — works in mobile and desktop apps.
 // One-liner: initiate → open browser → poll → finalize
 const result = await client.connections.connect(
   {
-    pieceName: 'piece-gmail',
+    pieceName: 'gmail',
     projectId: 'your-project-id',
     displayName: 'Gmail',
   },
@@ -138,7 +138,7 @@ Or step-by-step for more control:
 ```typescript
 // 1. Get OAuth URL
 const { redirectUrl, composioAccountId } = await client.connections.initiate({
-  pieceName: 'piece-gmail',
+  pieceName: 'gmail',
   projectId: 'your-project-id',
   displayName: 'Gmail',
 })
@@ -157,11 +157,36 @@ do {
 if (status === 'ACTIVE') {
   await client.connections.finalize({
     composioAccountId,
-    pieceName: 'piece-gmail',
+    pieceName: 'gmail',
     projectId: 'your-project-id',
     displayName: 'Gmail',
   })
 }
+```
+
+### Flows
+
+```typescript
+// List flows
+const flows = await client.flows.list({ status: 'ENABLED', limit: 20 })
+
+// Run a flow asynchronously (returns immediately)
+const run = await client.flows.run('flow-id', {
+  payload: { email: 'user@example.com', name: 'John' },
+})
+console.log(run.id) // flow run ID
+
+// Run a flow synchronously (waits for completion)
+const result = await client.flows.runSync('flow-id', {
+  payload: { query: 'summarize this document' },
+})
+console.log(result) // flow output
+
+// CRUD operations
+const flow = await client.flows.create({ displayName: 'My Flow' })
+await client.flows.enable(flow.id)
+await client.flows.rename(flow.id, 'New Name')
+await client.flows.delete(flow.id)
 ```
 
 ### MCP Services
@@ -173,9 +198,9 @@ const server = await client.mcp.get()
 // List integrations
 const integrations = await client.mcp.integrations.list()
 
-// Add an integration
+// Add an integration (just use the piece short name)
 await client.mcp.integrations.add({
-  pieceName: 'piece-slack',
+  pieceName: 'slack',
   pieceVersion: '0.1.0',
   actionName: 'send_message',
 })
@@ -242,24 +267,6 @@ try {
 ```
 
 Error classes: `AuthenticationError` (401), `AuthorizationError` (403), `NotFoundError` (404), `ValidationError` (400), `RateLimitError` (429), `ServerError` (5xx), `TimeoutError`.
-
-## Examples
-
-Working examples in the [`examples/`](./examples) directory:
-
-| Example | Description |
-|---------|-------------|
-| [agent-chat](./examples/agent-chat) | Interactive CLI chat with any agent |
-| [kb-search](./examples/kb-search) | Search across knowledge bases |
-| [flow-management](./examples/flow-management) | Create, list, rename, and delete flows |
-
-Run any example:
-
-```bash
-export THINKFLEET_API_KEY="sk-..."
-export THINKFLEET_PROJECT_ID="..."
-npx tsx examples/agent-chat/index.ts
-```
 
 ## Requirements
 

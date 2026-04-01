@@ -226,7 +226,7 @@ async function testMemory(agentId: string | null) {
       visualDescription: 'A red test icon with the letters SDK in white',
     })
     assert(memory.id !== undefined, 'should return ID')
-    assert(memory.content.length > 0, 'should have content')
+    assert(memory.content.includes('Visual:'), 'should include visual description in content')
     console.log(`     Created visual memory: ${memory.id}`)
     // Clean up
     await tf.memory.delete(agentId!, memory.id)
@@ -265,8 +265,8 @@ async function testMemory(agentId: string | null) {
   // Admin memory
   await test('admin: get memory stats', async () => {
     const stats = await tf.memory.admin.stats()
-    assert(typeof stats.total === 'number', 'should return total')
-    console.log(`     Total memories: ${stats.total}, pending: ${stats.pendingReview}`)
+    assert(typeof stats.totalCount === 'number', 'should return totalCount')
+    console.log(`     Total memories: ${stats.totalCount}, pending: ${stats.pendingCount}`)
   })
 
   await test('admin: list pending review', async () => {

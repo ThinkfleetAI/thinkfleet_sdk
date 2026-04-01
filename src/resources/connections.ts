@@ -1,5 +1,6 @@
 import type { HttpClient } from '../core/http-client.js'
 import type { RequestOptions } from '../core/types.js'
+import { normalizePieceName } from '../core/piece-name.js'
 import type {
   ComposioApp,
   MappedComposioApp,
@@ -21,21 +22,21 @@ function raw(options?: RequestOptions): RequestOptions {
 }
 
 /**
- * Composio OAuth connections for piece-based integrations.
+ * OAuth connections for service integrations.
  *
  * Usage flow for mobile/desktop apps:
- * 1. `connections.isConfigured()` — check if Composio is available
+ * 1. `connections.isConfigured()` — check if OAuth provider is available
  * 2. `connections.listApps()` — show available services to the user
- * 3. `connections.initiate({ pieceName, projectId, displayName })` — get OAuth URL
+ * 3. `connections.initiate({ pieceName: 'gmail', projectId, displayName })` — get OAuth URL
  * 4. Open `redirectUrl` in system browser / in-app browser / WebView
  * 5. User authorizes → browser redirects to callback (handled server-side)
  * 6. Poll `connections.getStatus(composioAccountId)` until status is 'ACTIVE'
- * 7. `connections.finalize({ composioAccountId, pieceName, projectId, displayName })`
+ * 7. `connections.finalize({ composioAccountId, pieceName: 'gmail', projectId, displayName })`
  *
  * Or use the convenience method:
  * ```typescript
  * const result = await client.connections.connect(
- *   { pieceName: '@activepieces/piece-gmail', projectId, displayName: 'Gmail' },
+ *   { pieceName: 'gmail', projectId, displayName: 'Gmail' },
  *   (url) => Linking.openURL(url),  // React Native
  * )
  * ```
@@ -68,7 +69,7 @@ export class ConnectionsResource {
    * Returns a `redirectUrl` to open in a browser for user consent.
    */
   async initiate(body: InitiateConnectionRequest, options?: RequestOptions): Promise<InitiateConnectionResponse> {
-    return this.http.post<InitiateConnectionResponse>('/composio/initiate', body, raw(options))
+    return this.http.post<InitiateConnectionResponse>('/composio/initiate', { ...body, pieceName: normalizePieceName(body.pieceName) }, raw(options))
   }
 
   /**
@@ -85,7 +86,7 @@ export class ConnectionsResource {
    * Call this after `getStatus()` returns 'ACTIVE'.
    */
   async finalize(body: FinalizeConnectionRequest, options?: RequestOptions): Promise<FinalizeConnectionResponse> {
-    return this.http.post<FinalizeConnectionResponse>('/composio/finalize', body, raw(options))
+    return this.http.post<FinalizeConnectionResponse>('/composio/finalize', { ...body, pieceName: normalizePieceName(body.pieceName) }, raw(options))
   }
 
   /**
@@ -114,7 +115,7 @@ export class ConnectionsResource {
       if (status === 'ACTIVE') {
         return this.finalize({
           composioAccountId,
-          pieceName: body.pieceName,
+          pieceName: normalizePieceName(body.pieceName),
           projectId: body.projectId,
           displayName: body.displayName,
         }, options)

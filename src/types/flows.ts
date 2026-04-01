@@ -69,3 +69,20 @@ export type FlowOperationRequest =
   | UpdateFlowStatusRequest
   | UpdateFlowNameRequest
   | UpdateFlowFolderRequest
+
+export interface RunFlowRequest {
+  /** Payload to send to the flow's webhook trigger */
+  payload?: Record<string, unknown>
+  /** HTTP headers to include in the webhook request */
+  headers?: Record<string, string>
+}
+
+export interface FlowRunResponse {
+  /** The flow run ID */
+  id: string
+  /** Flow run status */
+  status: string
+  /** Output from the flow (only available for synchronous runs) */
+  output?: unknown
+  [key: string]: unknown
+}

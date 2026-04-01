@@ -18,6 +18,7 @@ export interface MappedComposioApp {
 }
 
 export interface InitiateConnectionRequest {
+  /** Short piece name, e.g. "gmail", "slack", "google-sheets" */
   pieceName: string
   projectId: string
   displayName: string
@@ -31,6 +32,7 @@ export interface InitiateConnectionResponse {
 
 export interface FinalizeConnectionRequest {
   composioAccountId: string
+  /** Short piece name, e.g. "gmail", "slack", "google-sheets" */
   pieceName: string
   projectId: string
   displayName: string

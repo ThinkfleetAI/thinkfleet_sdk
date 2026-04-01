@@ -6,6 +6,8 @@ import type {
   ListFlowsParams,
   CountFlowsParams,
   FlowOperationRequest,
+  RunFlowRequest,
+  FlowRunResponse,
 } from '../types/flows.js'
 
 /** Flows are at /v1/flows (not under /projects/:projectId/) */
@@ -121,5 +123,44 @@ export class FlowsResource {
    */
   async rename(flowId: string, displayName: string, options?: RequestOptions): Promise<PopulatedFlow> {
     return this.update(flowId, { type: 'CHANGE_NAME', request: { displayName } }, options)
+  }
+
+  /**
+   * Run a flow asynchronously via its webhook trigger.
+   * Returns immediately with the flow run ID.
+   *
+   * @example
+   * ```ts
+   * const run = await tf.flows.run('flowId', {
+   *   payload: { email: 'user@example.com', name: 'John' },
+   * })
+   * console.log(run.id) // flow run ID
+   * ```
+   */
+  async run(flowId: string, body?: RunFlowRequest, options?: RequestOptions): Promise<FlowRunResponse> {
+    return this.http.post<FlowRunResponse>(`/webhooks/${flowId}`, body?.payload ?? {}, {
+      ...options,
+      rawPath: true,
+    })
+  }
+
+  /**
+   * Run a flow synchronously via its webhook trigger.
+   * Waits for the flow to complete and returns the output.
+   *
+   * @example
+   * ```ts
+   * const result = await tf.flows.runSync('flowId', {
+   *   payload: { query: 'summarize this document' },
+   * })
+   * console.log(result) // flow output
+   * ```
+   */
+  async runSync(flowId: string, body?: RunFlowRequest, options?: RequestOptions): Promise<FlowRunResponse> {
+    return this.http.post<FlowRunResponse>(`/webhooks/${flowId}/sync`, body?.payload ?? {}, {
+      ...options,
+      rawPath: true,
+      timeout: options?.timeout ?? 120000,
+    })
   }
 }

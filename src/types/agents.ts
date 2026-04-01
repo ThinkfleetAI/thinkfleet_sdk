@@ -226,6 +226,7 @@ export interface ChatMessage {
 
 // Tool management requests
 export interface AddIntegrationToolRequest {
+  /** Short piece name, e.g. "gmail", "slack", "google-sheets" */
   pieceName: string
   pieceVersion: string
   actionName: string
