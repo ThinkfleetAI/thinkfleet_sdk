@@ -9,6 +9,10 @@ import { VoiceResource } from './resources/voice.js'
 import { MemoryResource } from './resources/memory.js'
 import { FlowsResource } from './resources/flows.js'
 import { ProjectsResource } from './resources/projects.js'
+import { GuardrailsResource } from './resources/guardrails.js'
+import { ShieldResource } from './resources/shield.js'
+import { OAuthResource } from './resources/oauth.js'
+import { OrgChartResource } from './resources/org-chart.js'
 
 export interface ThinkFleetOptions {
   /** API key in the format `sk-XXXXX...` */
@@ -36,6 +40,10 @@ export class ThinkFleet {
   readonly memory: MemoryResource
   readonly flows: FlowsResource
   readonly projects: ProjectsResource
+  readonly guardrails: GuardrailsResource
+  readonly shield: ShieldResource
+  readonly oauth: OAuthResource
+  readonly orgChart: OrgChartResource
 
   constructor(options: ThinkFleetOptions) {
     if (!options.apiKey) {
@@ -64,5 +72,9 @@ export class ThinkFleet {
     this.memory = new MemoryResource(http)
     this.flows = new FlowsResource(http, options.projectId)
     this.projects = new ProjectsResource(http)
+    this.guardrails = new GuardrailsResource(http)
+    this.shield = new ShieldResource(http)
+    this.oauth = new OAuthResource(http)
+    this.orgChart = new OrgChartResource(http)
   }
 }

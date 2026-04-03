@@ -13,14 +13,14 @@ export {
   TimeoutError,
 } from './core/errors.js'
 
-export type { SeekPage, RequestOptions } from './core/types.js'
+export type { SeekPage, RequestOptions, RequestInterceptor, ResponseInterceptor } from './core/types.js'
 export { normalizePieceName } from './core/piece-name.js'
 
 // Resources
 export { AgentsResource, AgentToolsResource } from './resources/agents.js'
 export { TasksResource } from './resources/tasks.js'
 export { KnowledgeBasesResource, KnowledgeBaseDocumentsResource, KnowledgeBaseSourcesResource } from './resources/knowledge-bases.js'
-export { McpResource, McpIntegrationsResource, McpExternalServersResource } from './resources/mcp.js'
+export { McpResource, McpIntegrationsResource, McpExternalServersResource, type McpSkillsManifest } from './resources/mcp.js'
 export { CrewsResource, CrewColumnsResource, CrewTasksResource } from './resources/crews.js'
 export { ConnectionsResource, ComposioIntegrationsResource } from './resources/connections.js'
 export { VoiceResource } from './resources/voice.js'
@@ -227,3 +227,78 @@ export type {
 
 // Types — Common
 export type { BaseModel } from './types/common.js'
+
+// Resources — Guardrails
+export { GuardrailsResource } from './resources/guardrails.js'
+export type {
+  GuardrailPolicy,
+  UpdateGuardrailPolicyRequest,
+  GuardrailCheckResult,
+  ScanTextRequest,
+  ScanTextResult,
+  PatternCatalog,
+  PatternCatalogEntry,
+  ModerationConfig,
+  PromptInjectionConfig,
+  PiiDetectionConfig,
+  TokenBudget,
+  ModelAccessPolicy,
+  DataProtectionConfig,
+  CustomPattern,
+  TokenUsageDaily,
+} from './types/guardrails.js'
+export {
+  GuardrailAction,
+  GuardrailSensitivity,
+  GuardrailViolationType,
+  ModelAccessMode,
+} from './types/guardrails.js'
+
+// Resources — Shield (AI Proxy Governance)
+export { ShieldResource } from './resources/shield.js'
+export type {
+  ShieldOverview,
+  ShieldRequest,
+  ShieldCostAnalytics,
+  ShieldDeveloperBreakdown,
+  ListShieldRequestsParams,
+} from './types/shield.js'
+
+// Resources — OAuth (Provider Registry + Credential Governance)
+export { OAuthResource, OAuthProvidersResource, OAuthConfigsResource } from './resources/oauth.js'
+export type {
+  OAuthProvider,
+  IntegrationConfig,
+  CreateIntegrationConfigRequest,
+  AvailableProvider,
+  InitiateOAuthRequest,
+  InitiateOAuthResponse,
+  ClientCredentialsRequest,
+  DirectConnectRequest,
+  OAuthConnection,
+  ProxyRequestOptions,
+  ListProvidersParams,
+} from './types/oauth.js'
+
+// Resources — Org Chart (Enterprise Agent Orchestration)
+export { OrgChartResource, OrgPositionsResource, OrgGoalsResource, OrgConnectedAgentsResource } from './resources/org-chart.js'
+export type {
+  OrgPosition,
+  PopulatedOrgPosition,
+  Goal,
+  KeyResult,
+  BudgetRequest,
+  ConnectedAgent,
+  PositionRuntimeConfig,
+  CreatePositionRequest,
+  UpdatePositionRequest,
+  CreateGoalRequest,
+  UpdateGoalRequest,
+  RegisterAgentRequest,
+  OrgCostSummary,
+} from './types/org-chart.js'
+export {
+  AutonomyLevel,
+  GoalStatus,
+  RuntimeType,
+} from './types/org-chart.js'

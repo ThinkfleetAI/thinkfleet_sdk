@@ -53,6 +53,124 @@ export class HttpClient {
     }, requestOptions)
   }
 
+  /**
+   * Auto-paginating list helper. Fetches all pages of a SeekPage response.
+   *
+   * @example
+   * ```ts
+   * const allFlows = await http.listAll<Flow>('/flows')
+   * ```
+   */
+  async listAll<T>(path: string, params?: Record<string, string | number | boolean | undefined>, requestOptions?: RequestOptions): Promise<T[]> {
+    const all: T[] = []
+    let cursor: string | null = null
+    const limit = 100
+
+    do {
+      const queryParams: Record<string, string | number | boolean | undefined> = { ...params, limit, ...(cursor ? { cursor } : {}) }
+      const page: { data: T[]; next: string | null } = await this.get(path, queryParams, requestOptions)
+      if (page.data) {
+        all.push(...page.data)
+      }
+      cursor = page.next
+    } while (cursor)
+
+    return all
+  }
+
+  /**
+   * POST that returns a Server-Sent Events stream.
+   * Yields parsed SSE events as they arrive.
+   *
+   * @example
+   * ```ts
+   * for await (const event of http.postStream('/chatbots/123/agent-chat', { message: 'hello' })) {
+   *   console.log(event)
+   * }
+   * ```
+   */
+  async *postStream(path: string, body?: unknown, requestOptions?: RequestOptions): AsyncGenerator<{ event?: string; data: string }> {
+    const url = this.buildUrl(path, undefined, requestOptions)
+    const timeout = requestOptions?.timeout ?? 120000
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+    try {
+      let init: RequestInit = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.options.apiKey}`,
+          'Accept': 'text/event-stream',
+        },
+        body: body != null ? JSON.stringify(body) : undefined,
+        signal: requestOptions?.signal ?? controller.signal,
+      }
+
+      if (this.options.requestInterceptors) {
+        for (const interceptor of this.options.requestInterceptors) {
+          init = await interceptor(url, init)
+        }
+      }
+
+      const response = await this.options.fetchFn(url, init)
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new ThinkFleetError(text || `HTTP ${response.status}`, response.status, 'STREAM_ERROR')
+      }
+
+      if (!response.body) {
+        throw new ThinkFleetError('No response body for stream', 0, 'STREAM_ERROR')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        let currentEvent: string | undefined
+        let currentData = ''
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim()
+          }
+          else if (line.startsWith('data:')) {
+            currentData = line.slice(5).trim()
+            if (currentData === '[DONE]') return
+            yield { event: currentEvent, data: currentData }
+            currentEvent = undefined
+            currentData = ''
+          }
+          else if (line === '') {
+            if (currentData) {
+              yield { event: currentEvent, data: currentData }
+              currentEvent = undefined
+              currentData = ''
+            }
+          }
+        }
+      }
+    }
+    catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof ThinkFleetError) throw error
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new TimeoutError(`Stream timed out after ${timeout}ms`)
+      }
+      throw new ThinkFleetError(`Stream error: ${(error as Error).message}`, 0, 'STREAM_ERROR')
+    }
+  }
+
   /** POST that returns raw binary data (ArrayBuffer) instead of JSON */
   async postRaw(path: string, body?: unknown, requestOptions?: RequestOptions): Promise<ArrayBuffer> {
     const url = this.buildUrl(path, undefined, requestOptions)
@@ -117,16 +235,32 @@ export class HttpClient {
       const timeoutId = setTimeout(() => controller.abort(), timeout)
 
       try {
-        const response = await this.options.fetchFn(url, {
+        let finalInit: RequestInit = {
           ...init,
           headers: {
             ...init.headers as Record<string, string>,
             'Authorization': `Bearer ${this.options.apiKey}`,
           },
           signal: requestOptions?.signal ?? controller.signal,
-        })
+        }
+
+        // Run request interceptors
+        if (this.options.requestInterceptors) {
+          for (const interceptor of this.options.requestInterceptors) {
+            finalInit = await interceptor(url, finalInit)
+          }
+        }
+
+        let response = await this.options.fetchFn(url, finalInit)
 
         clearTimeout(timeoutId)
+
+        // Run response interceptors
+        if (this.options.responseInterceptors) {
+          for (const interceptor of this.options.responseInterceptors) {
+            response = await interceptor(response, url)
+          }
+        }
 
         if (response.ok) {
           if (response.status === 204) {

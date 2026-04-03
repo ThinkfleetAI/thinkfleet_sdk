@@ -12,6 +12,12 @@ export interface RequestOptions {
   rawPath?: boolean
 }
 
+/** Middleware function that can inspect/modify requests before they are sent. */
+export type RequestInterceptor = (url: string, init: RequestInit) => RequestInit | Promise<RequestInit>
+
+/** Middleware function that can inspect/modify responses before they are returned. */
+export type ResponseInterceptor = (response: Response, url: string) => Response | Promise<Response>
+
 export interface HttpClientOptions {
   apiKey: string
   projectId: string
@@ -19,4 +25,8 @@ export interface HttpClientOptions {
   maxRetries: number
   timeout: number
   fetchFn: typeof globalThis.fetch
+  /** Middleware hooks called before each request. */
+  requestInterceptors?: RequestInterceptor[]
+  /** Middleware hooks called after each response (before JSON parsing). */
+  responseInterceptors?: ResponseInterceptor[]
 }

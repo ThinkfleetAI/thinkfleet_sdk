@@ -78,4 +78,26 @@ export class AgentsResource {
       { ...options, timeout: options?.timeout ?? 120000 },
     )
   }
+
+  /**
+   * Stream a chat response from an agent using Server-Sent Events.
+   * Yields parsed SSE events as they arrive for real-time UI updates.
+   *
+   * @example
+   * ```ts
+   * for await (const event of tf.agents.chatStream('agentId', { message: 'Hello' })) {
+   *   if (event.data) {
+   *     const parsed = JSON.parse(event.data)
+   *     process.stdout.write(parsed.text ?? '')
+   *   }
+   * }
+   * ```
+   */
+  chatStream(agentId: string, body: ChatRequest, options?: RequestOptions): AsyncGenerator<{ event?: string; data: string }> {
+    return this.http.postStream(
+      `/chatbots/${agentId}/agent-chat`,
+      { ...body, stream: true },
+      { ...options, timeout: options?.timeout ?? 120000 },
+    )
+  }
 }

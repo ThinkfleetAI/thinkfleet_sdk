@@ -79,11 +79,41 @@ export class McpResource {
     return this.http.post<McpServer>('/mcp-server/rotate', undefined, options)
   }
 
-  async skills(options?: RequestOptions): Promise<unknown> {
-    return this.http.get<unknown>('/mcp-server/skills.json', undefined, options)
+  async skills(options?: RequestOptions): Promise<McpSkillsManifest> {
+    return this.http.get<McpSkillsManifest>('/mcp-server/skills.json', undefined, options)
   }
 
   async skillsOpenApi(options?: RequestOptions): Promise<string> {
     return this.http.get<string>('/mcp-server/skills.openapi.yaml', undefined, options)
   }
+
+  /**
+   * Get the MCP server connection URL for external AI tools (Claude Code, Codex, Cursor, etc.).
+   * Returns the HTTP endpoint URL and the bearer token needed to connect.
+   *
+   * @example
+   * ```ts
+   * const { url, token } = await tf.mcp.getConnectionInfo()
+   * // Use in Claude Code:
+   * // claude mcp add thinkfleet --transport streamable-http --url {url} --header "Authorization: Bearer {token}"
+   * ```
+   */
+  async getConnectionInfo(options?: RequestOptions): Promise<{ url: string; token: string }> {
+    const server = await this.get(options)
+    const baseUrl = (this.http as any).options?.baseUrl ?? ''
+    const projectId = (this.http as any).options?.projectId ?? ''
+    return {
+      url: `${baseUrl}/api/v1/projects/${projectId}/mcp-server/http`,
+      token: server.token,
+    }
+  }
+}
+
+/** Typed skills manifest returned by skills.json endpoint */
+export interface McpSkillsManifest {
+  tools: Array<{
+    name: string
+    description: string
+    inputSchema: Record<string, unknown>
+  }>
 }
