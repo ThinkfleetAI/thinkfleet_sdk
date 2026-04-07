@@ -22,7 +22,7 @@ export { TasksResource } from './resources/tasks.js'
 export { KnowledgeBasesResource, KnowledgeBaseDocumentsResource, KnowledgeBaseSourcesResource } from './resources/knowledge-bases.js'
 export { McpResource, McpIntegrationsResource, McpExternalServersResource, type McpSkillsManifest } from './resources/mcp.js'
 export { CrewsResource, CrewColumnsResource, CrewTasksResource } from './resources/crews.js'
-export { ConnectionsResource, ComposioIntegrationsResource } from './resources/connections.js'
+export { ConnectionsResource } from './resources/connections.js'
 export { VoiceResource } from './resources/voice.js'
 export { MemoryResource, AdminMemoryResource, ProjectMemoryResource } from './resources/memory.js'
 export { FlowsResource } from './resources/flows.js'
@@ -151,20 +151,16 @@ export {
   ColumnModelTier,
 } from './types/crews.js'
 
-// Types — Connections (Composio OAuth)
+// Types — Connections (Native OAuth)
 export type {
-  ComposioApp,
-  MappedComposioApp,
+  Connection,
   InitiateConnectionRequest,
   InitiateConnectionResponse,
-  FinalizeConnectionRequest,
-  FinalizeConnectionResponse,
-  ConnectionStatusResponse,
-  ComposioIntegration,
-  InitiateIntegrationRequest,
-  FinalizeIntegrationRequest,
-  FinalizeIntegrationResponse,
-  ComposioAction,
+  ClientCredentialsRequest,
+  DirectConnectRequest,
+  TestConnectionResponse,
+  ListConnectionsParams,
+  MethodForPieceResponse,
 } from './types/connections.js'
 
 // Types — Voice
@@ -273,8 +269,6 @@ export type {
   AvailableProvider,
   InitiateOAuthRequest,
   InitiateOAuthResponse,
-  ClientCredentialsRequest,
-  DirectConnectRequest,
   OAuthConnection,
   ProxyRequestOptions,
   ListProvidersParams,
