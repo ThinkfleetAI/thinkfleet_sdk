@@ -311,11 +311,29 @@ async function testCrews() {
 async function testConnections() {
   console.log('\n🔗 Connections')
 
-  await test('check Composio configured', async () => {
-    const result = await tf.connections.isConfigured()
-    assert(typeof result === 'boolean', 'should return boolean')
-    console.log(`     Composio configured: ${result}`)
+  await test('list connections', async () => {
+    const result = await tf.connections.list()
+    assert(Array.isArray(result.data), 'should return data array')
+    console.log(`     Found ${result.data.length} connection(s)`)
   })
+
+  await test('check method for piece', async () => {
+    const method = await tf.connections.methodForPiece('@activepieces/piece-gmail')
+    assert(method.method === 'native' || method.method === 'composio', 'should return valid method')
+    console.log(`     Gmail method: ${method.method}, hasCredentials: ${method.hasCredentials}`)
+  })
+
+  // Test an existing connection if available
+  const { data: connections } = await tf.connections.list()
+  if (connections.length > 0) {
+    await test('test connection', async () => {
+      const result = await tf.connections.test(connections[0].id)
+      assert(result.status === 'active' || result.status === 'error', 'should return status')
+      console.log(`     ${connections[0].displayName}: ${result.status} — ${result.message}`)
+    })
+  } else {
+    skip('test connection', 'no connections found')
+  }
 }
 
 // ── Main ────────────────────────────────────────────────────────────

@@ -115,53 +115,50 @@ const results = await client.knowledgeBases.search({
 
 ### Connections (OAuth)
 
-Connect third-party services via OAuth — works in mobile and desktop apps.
+Connect third-party services via OAuth — works in mobile, desktop, and web apps.
 
 ```typescript
-// One-liner: initiate → open browser → poll → finalize
-const result = await client.connections.connect(
-  {
-    pieceName: 'gmail',
-    projectId: 'your-project-id',
-    displayName: 'Gmail',
-  },
-  (url) => Linking.openURL(url), // React Native
-)
+// 1. Check if native OAuth is configured for a service
+const method = await client.connections.methodForPiece('@activepieces/piece-gmail')
+console.log(method.method) // 'native' if credentials are configured
 
-if (result.success) {
-  console.log('Connected!', result.connectionId)
-}
-```
-
-Or step-by-step for more control:
-
-```typescript
-// 1. Get OAuth URL
-const { redirectUrl, composioAccountId } = await client.connections.initiate({
-  pieceName: 'gmail',
-  projectId: 'your-project-id',
-  displayName: 'Gmail',
+// 2. Start OAuth flow
+const { authorizationUrl, sessionId } = await client.connections.initiate({
+  providerSlug: 'google',
+  callbackUrl: 'https://myapp.com/oauth/callback',
+  scopes: ['openid', 'email', 'https://www.googleapis.com/auth/gmail.modify'],
 })
 
-// 2. Open in browser/WebView
-window.open(redirectUrl)
+// 3. Open in browser/popup — user completes OAuth consent
+window.open(authorizationUrl)
+// Server handles the callback and creates the connection automatically
 
-// 3. Poll until user completes OAuth
-let status
-do {
-  await new Promise(r => setTimeout(r, 3000))
-  ;({ status } = await client.connections.getStatus(composioAccountId))
-} while (status === 'INITIATED')
+// 4. List connections
+const { data: connections } = await client.connections.list()
 
-// 4. Finalize
-if (status === 'ACTIVE') {
-  await client.connections.finalize({
-    composioAccountId,
-    pieceName: 'gmail',
-    projectId: 'your-project-id',
-    displayName: 'Gmail',
-  })
-}
+// 5. Test a connection (validates token, refreshes if expired)
+const result = await client.connections.test(connections[0].id)
+console.log(result.status) // 'active' | 'error'
+```
+
+API key and Basic auth connections:
+
+```typescript
+// Direct connect (no OAuth flow needed)
+const conn = await client.connections.connect({
+  providerSlug: 'openai',
+  connectionDisplayName: 'My OpenAI Key',
+  credentials: { api_key: 'sk-...' },
+})
+```
+
+Client Credentials grant (server-to-server):
+
+```typescript
+const conn = await client.connections.clientCredentials({
+  providerSlug: 'microsoft',
+  scopes: ['https://graph.microsoft.com/.default'],
+})
 ```
 
 ### Flows
