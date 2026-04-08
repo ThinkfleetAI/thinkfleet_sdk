@@ -35,7 +35,7 @@ export class ConnectionsResource {
 
   /** List connections for the current project. */
   async list(params?: ListConnectionsParams, options?: RequestOptions): Promise<{ data: Connection[]; next: string | null; previous: string | null }> {
-    return this.http.get('/app-connections', params as Record<string, string | number | boolean | undefined>, { ...options, rawPath: true })
+    return this.http.get('/app-connections', params as Record<string, string | number | boolean | undefined>, { ...options, rawPath: true, injectProjectId: true })
   }
 
   /** Get a single connection by ID. */

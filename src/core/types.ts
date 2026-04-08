@@ -10,6 +10,8 @@ export interface RequestOptions {
   signal?: AbortSignal
   /** If true, path is used as-is under /api/v1/ without /projects/:projectId/ prefix */
   rawPath?: boolean
+  /** If true and rawPath is true, automatically adds projectId as a query parameter */
+  injectProjectId?: boolean
 }
 
 /** Middleware function that can inspect/modify requests before they are sent. */

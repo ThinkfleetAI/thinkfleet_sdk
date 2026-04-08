@@ -208,10 +208,16 @@ export class HttpClient {
     const base = requestOptions?.rawPath
       ? `${this.options.baseUrl}/api/v1${path}`
       : `${this.options.baseUrl}/api/v1/projects/${requestOptions?.projectId ?? this.options.projectId}${path}`
-    if (!params) return base
+
+    const mergedParams = { ...params }
+    if (requestOptions?.rawPath && requestOptions?.injectProjectId) {
+      mergedParams.projectId = requestOptions?.projectId ?? this.options.projectId
+    }
+
+    if (Object.keys(mergedParams).length === 0) return base
 
     const searchParams = new URLSearchParams()
-    for (const [key, value] of Object.entries(params)) {
+    for (const [key, value] of Object.entries(mergedParams)) {
       if (value !== undefined) {
         searchParams.set(key, String(value))
       }

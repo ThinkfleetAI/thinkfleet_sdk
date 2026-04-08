@@ -69,10 +69,7 @@ export interface CreateMemoryRequest {
   chatIdentityId?: string
   sessionKey?: string
   metadata?: Record<string, unknown>
-  /** Detailed visual description for image-based memories */
-  visualDescription?: string
-  /** File ID of the associated image */
-  imageFileId?: string
+  impact?: MemoryImpact
 }
 
 export interface UpdateMemoryRequest {
@@ -141,9 +138,9 @@ export interface ListMemoryParams {
 }
 
 export interface MemoryStats {
-  totalCount: number
-  pendingCount: number
-  confirmedCount: number
+  total: number
+  pendingReview: number
+  flagged: number
   byScope: Record<string, number>
-  byType: Record<string, number>
+  byStatus: Record<string, number>
 }
