@@ -13,6 +13,9 @@ import { GuardrailsResource } from './resources/guardrails.js'
 import { ShieldResource } from './resources/shield.js'
 import { OAuthResource } from './resources/oauth.js'
 import { OrgChartResource } from './resources/org-chart.js'
+import { ContactsResource } from './resources/contacts.js'
+import { MessageTemplatesResource } from './resources/message-templates.js'
+import { EngagementResource } from './resources/engagement.js'
 
 export interface ThinkFleetOptions {
   /** API key in the format `sk-XXXXX...` */
@@ -44,6 +47,9 @@ export class ThinkFleet {
   readonly shield: ShieldResource
   readonly oauth: OAuthResource
   readonly orgChart: OrgChartResource
+  readonly contacts: ContactsResource
+  readonly messageTemplates: MessageTemplatesResource
+  readonly engagement: EngagementResource
 
   constructor(options: ThinkFleetOptions) {
     if (!options.apiKey) {
@@ -76,5 +82,8 @@ export class ThinkFleet {
     this.shield = new ShieldResource(http)
     this.oauth = new OAuthResource(http)
     this.orgChart = new OrgChartResource(http)
+    this.contacts = new ContactsResource(http)
+    this.messageTemplates = new MessageTemplatesResource(http)
+    this.engagement = new EngagementResource(http)
   }
 }
