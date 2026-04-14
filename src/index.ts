@@ -332,6 +332,12 @@ export type {
   RenderMessageTemplateRequest,
   PreviewMessageTemplateRequest,
 } from './types/message-templates.js'
+export {
+  renderLocal,
+  type RenderLocalContext,
+  type RenderLocalInput,
+  type RenderLocalResult,
+} from './utils/render-local.js'
 
 // Resources — Engagement (promotions + dispatch log + project settings)
 export {

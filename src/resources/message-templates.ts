@@ -9,6 +9,12 @@ import type {
   RenderMessageTemplateRequest,
   UpdateMessageTemplateRequest,
 } from '../types/message-templates.js'
+import {
+  renderLocal,
+  type RenderLocalContext,
+  type RenderLocalInput,
+  type RenderLocalResult,
+} from '../utils/render-local.js'
 
 /**
  * Reusable message templates with placeholder syntax that hydrates from
@@ -89,5 +95,40 @@ export class MessageTemplatesResource {
    */
   async channelPolicies(options?: RequestOptions): Promise<ChannelPolicy[]> {
     return this.http.get<ChannelPolicy[]>(`/message-templates/channel-policies`, undefined, options)
+  }
+
+  /**
+   * Render a template client-side without a round trip to the server.
+   * Mirrors the server's placeholder resolution order (extras > contact >
+   * preferences > facts > patterns > events > media). Use for live previews,
+   * offline rendering, mail-merge batches, or unit tests.
+   *
+   * Pass either an existing template (fetched via `.get()` or `.list()`)
+   * or a raw `{ subject, body }` input.
+   *
+   * @example
+   * ```ts
+   * const template = await client.templates.get('tpl_abc')
+   * const profile = await client.contacts.profile('con_123')
+   *
+   * const { subject, body, unresolvedPlaceholders } = client.templates.renderLocal(
+   *   template,
+   *   { profile, extras: { promotion: { code: 'PIZZA20', discountValue: 20 } } },
+   * )
+   * ```
+   */
+  renderLocal(
+    template: Pick<ClawdbotMessageTemplate, 'subject' | 'body'> | RenderLocalInput,
+    context?: RenderLocalContext,
+  ): RenderLocalResult {
+    if ('context' in template) {
+      // Caller passed a full RenderLocalInput.
+      return renderLocal(template)
+    }
+    return renderLocal({
+      subject: template.subject ?? null,
+      body: template.body,
+      context,
+    })
   }
 }
