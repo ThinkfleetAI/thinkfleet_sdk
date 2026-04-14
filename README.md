@@ -225,6 +225,86 @@ await client.crews.tasks.create('project-id', {
 await client.crews.tasks.run('project-id', 'task-id')
 ```
 
+### Message Templates (with RCS / MMS support)
+
+Reusable, memory-aware message templates. Placeholders render from a
+contact's `ContactProfile` plus extras you pass in.
+
+```typescript
+// List / get / create
+const templates = await client.templates.list()
+const tpl = await client.templates.get('tpl-id')
+
+const newTpl = await client.templates.create({
+  name: 'Win-back Offer',
+  body: "Hey {contact.name}, it's been {pattern.daysSinceLastOrder} days — use {promotion.code}!",
+  channel: 'sms',
+})
+
+// Server-side render (uses the real contact profile)
+const rendered = await client.templates.render('tpl-id', {
+  contactId: 'con_123',
+  extras: { promotion: { code: 'PIZZA20', discountValue: 20 } },
+})
+// → { subject, body, mediaUrls, rcsPayload, unresolvedPlaceholders, policyWarnings, ... }
+
+// Client-side render (no round trip — for live previews, mail-merge batches)
+import { renderLocal } from '@thinkfleet/sdk'
+
+const profile = await client.contacts.getProfile('con_123')
+const out = client.templates.renderLocal(tpl, {
+  profile,
+  extras: { promotion: { code: 'PIZZA20', discountValue: 20 } },
+})
+// → { subject, body, unresolvedPlaceholders }
+
+// Or with a raw input (no template required)
+const ad = renderLocal({
+  subject: 'Hey {contact.name}!',
+  body: '{pattern.topItem} this Friday?',
+  context: { profile },
+})
+
+// Channel policies (for building your own char counters)
+const policies = await client.templates.channelPolicies()
+```
+
+**Placeholder resolution order** (same in server and `renderLocal`):
+`extras.*` → `contact.*` → `preferences.*` → `facts[N]` → `patterns.*`
+→ `recentEvents[N]` → `media.N`. Aliases: `{memory.topFact}`,
+`{memory.topPreference}`, `{pattern.topItem}`.
+
+### Media Library
+
+Upload images / video / audio / PDFs. Used by RCS cards, MMS attachments,
+and `{media.N}` placeholders in templates. Signed URLs default to 7-day
+TTL; auto alt-text is generated via Claude Vision on image and video
+uploads.
+
+```typescript
+import { readFileSync } from 'node:fs'
+
+// Upload (Buffer or Blob)
+const asset = await client.media.upload({
+  file: readFileSync('pepperoni.jpg'),
+  mimeType: 'image/jpeg',
+  filename: 'pepperoni.jpg',
+})
+// → { id, url, altText, tags, type, width, height, ... }
+
+// List / filter
+const { data } = await client.media.list({ type: 'image', limit: 50 })
+
+// Update alt text / tags
+await client.media.update(asset.id, {
+  altText: 'A classic pepperoni pizza',
+  tags: ['food', 'pepperoni', 'bestseller'],
+})
+
+// Delete
+await client.media.delete(asset.id)
+```
+
 ## Configuration
 
 ```typescript

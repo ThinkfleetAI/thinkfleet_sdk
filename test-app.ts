@@ -11,7 +11,7 @@
  *   npx tsx test-app.ts
  */
 
-import { ThinkFleet, FlowStatus, MemoryItemType, MemoryScope } from './src/index.js'
+import { ThinkFleet, FlowStatus, MemoryItemType, MemoryScope, renderLocal } from './src/index.js'
 
 // ── Config ──────────────────────────────────────────────────────────
 
@@ -340,6 +340,130 @@ async function testConnections() {
   }
 }
 
+async function testMediaLibrary() {
+  console.log('\n📸 Media Library')
+
+  let assetId: string | null = null
+
+  await test('media.list', async () => {
+    const page = await tf.media.list({ limit: 5 })
+    console.log(`   → ${page.data.length} assets`)
+  })
+
+  await test('media.upload (1x1 PNG)', async () => {
+    // Smallest valid PNG — 1x1 transparent pixel.
+    const PNG_1X1 = Buffer.from(
+      '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63000100000005000100' +
+        '0d0a2db40000000049454e44ae426082',
+      'hex',
+    )
+    const asset = await tf.media.upload({
+      file: PNG_1X1,
+      mimeType: 'image/png',
+      filename: 'sdk-test.png',
+    })
+    assetId = asset.id
+    console.log(`   → uploaded ${asset.id} (${asset.sizeBytes} bytes)`)
+  })
+
+  await test('media.get + update + delete', async () => {
+    if (!assetId) throw new Error('no asset id from upload')
+    const fetched = await tf.media.get(assetId)
+    console.log(`   → get: ${fetched.filename}`)
+    await tf.media.update(assetId, {
+      altText: 'SDK integration test asset',
+      tags: ['sdk-test', 'transient'],
+    })
+    await tf.media.delete(assetId)
+    console.log(`   → deleted`)
+  })
+}
+
+async function testMessageTemplates() {
+  console.log('\n💬 Message Templates')
+
+  let templateId: string | null = null
+
+  await test('templates.list', async () => {
+    const list = await tf.templates.list()
+    console.log(`   → ${list.length} templates`)
+  })
+
+  await test('templates.create', async () => {
+    const tpl = await tf.templates.create({
+      name: `SDK Test ${Date.now()}`,
+      body: "Hey {contact.name}, it's been {pattern.daysSinceLastOrder} days — use {promotion.code}!",
+      channel: 'sms',
+    })
+    templateId = tpl.id
+    console.log(`   → created ${tpl.id}`)
+  })
+
+  await test('templates.render (server)', async () => {
+    if (!templateId) throw new Error('no template id')
+    const out = await tf.templates.render(templateId, {
+      extras: { promotion: { code: 'SDK20' } },
+    })
+    console.log(`   → body: "${out.body.slice(0, 50)}..."`)
+  })
+
+  await test('templates.renderLocal (client)', async () => {
+    const out = tf.templates.renderLocal(
+      {
+        subject: 'Hey {contact.name}!',
+        body: "It's been {pattern.daysSinceLastOrder} days — use {promotion.code} for {promotion.discountValue}% off",
+      },
+      {
+        profile: {
+          contact: { id: 'x', chatbotId: 'x', projectId: 'x', name: 'Sarah', email: null, phone: null, chatIdentityId: null } as never,
+          chatIdentityId: null,
+          preferences: {},
+          facts: [],
+          patterns: {
+            totalOrders: 0,
+            avgOrderValue: null,
+            lastOrderAt: null,
+            daysSinceLastOrder: 30,
+            orderFrequencyLabel: null,
+            typicalDayOfWeek: null,
+            topItems: [],
+            lastPromotionRedeemed: null,
+          },
+          recentEvents: [],
+          rawMemories: [],
+        },
+        extras: { promotion: { code: 'PIZZA20', discountValue: 20 } },
+      },
+    )
+    const expected = "It's been 30 days — use PIZZA20 for 20% off"
+    if (out.body !== expected) {
+      throw new Error(`expected "${expected}", got "${out.body}"`)
+    }
+    console.log(`   → ${out.body}`)
+  })
+
+  await test('renderLocal (free function)', async () => {
+    const out = renderLocal({
+      body: 'Topping: {pattern.topItem}',
+      context: {
+        profile: {
+          patterns: { topItems: ['pepperoni', 'cheese'] },
+        } as never,
+      },
+    })
+    if (out.body !== 'Topping: pepperoni') {
+      throw new Error(`expected "Topping: pepperoni", got "${out.body}"`)
+    }
+    console.log(`   → ${out.body}`)
+  })
+
+  await test('templates.remove', async () => {
+    if (!templateId) throw new Error('no template id')
+    await tf.templates.remove(templateId)
+    console.log(`   → removed`)
+  })
+}
+
 // ── Main ────────────────────────────────────────────────────────────
 
 async function main() {
@@ -356,6 +480,8 @@ async function main() {
   await testMcp()
   await testCrews()
   await testConnections()
+  await testMediaLibrary()
+  await testMessageTemplates()
 
   console.log('\n' + '─'.repeat(50))
   console.log(`Results: ${passed} passed, ${failed} failed, ${skipped} skipped`)
