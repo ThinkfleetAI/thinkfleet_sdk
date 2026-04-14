@@ -296,3 +296,66 @@ export {
   GoalStatus,
   RuntimeType,
 } from './types/org-chart.js'
+
+// Resources — Contacts (CRM-like records that anchor agent memory)
+export { ContactsResource } from './resources/contacts.js'
+export type {
+  ContactSegment,
+  ClawdbotContact,
+  CreateContactRequest,
+  UpdateContactRequest,
+  LookupContactRequest,
+  LookupContactResponse,
+  ContactProfile,
+  ContactProfilePreference,
+  ContactProfileFact,
+  ContactProfilePatterns,
+  ContactProfileEventRef,
+  ContactProfileRawMemory,
+  ContactEventType,
+  ClawdbotContactEvent,
+  CreateContactEventRequest,
+} from './types/contacts.js'
+
+// Resources — Message Templates (memory-aware rendering with A/B + channel policies)
+export { MessageTemplatesResource } from './resources/message-templates.js'
+export type {
+  MessageTemplateChannel,
+  MessageTemplateVariant,
+  ClawdbotMessageTemplate,
+  CreateMessageTemplateRequest,
+  UpdateMessageTemplateRequest,
+  ChannelPolicy,
+  ChannelPolicyWarning,
+  ChannelPolicyWarningSeverity,
+  RenderedMessageTemplate,
+  RenderMessageTemplateRequest,
+  PreviewMessageTemplateRequest,
+} from './types/message-templates.js'
+export {
+  renderLocal,
+  type RenderLocalContext,
+  type RenderLocalInput,
+  type RenderLocalResult,
+} from './utils/render-local.js'
+
+// Resources — Engagement (promotions + dispatch log + project settings)
+export {
+  EngagementResource,
+  PromotionsResource,
+  DispatchLogResource,
+  EngagementSettingsResource,
+} from './resources/engagement.js'
+export type {
+  PromotionDiscountType,
+  ClawdbotEngagementPromotion,
+  CreateEngagementPromotionRequest,
+  MarkPromotionRedeemedRequest,
+  EngagementDispatchPath,
+  EngagementDispatchStatus,
+  ClawdbotEngagementDispatchLog,
+  ListEngagementDispatchLogRequest,
+  EngagementDispatchStats,
+  ClawdbotEngagementSettings,
+  UpdateEngagementSettingsRequest,
+} from './types/engagement.js'
