@@ -58,12 +58,12 @@ export class MessageTemplatesResource {
    */
   async render(
     templateId: string,
-    body: RenderMessageTemplateRequest,
+    params?: RenderMessageTemplateRequest,
     options?: RequestOptions,
   ): Promise<RenderedMessageTemplate> {
     return this.http.post<RenderedMessageTemplate>(
       `/message-templates/${templateId}/render`,
-      body,
+      params ?? {},
       options,
     )
   }

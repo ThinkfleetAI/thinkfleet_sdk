@@ -16,6 +16,7 @@ import { OrgChartResource } from './resources/org-chart.js'
 import { ContactsResource } from './resources/contacts.js'
 import { MessageTemplatesResource } from './resources/message-templates.js'
 import { EngagementResource } from './resources/engagement.js'
+import { MediaResource } from './resources/media.js'
 
 export interface ThinkFleetOptions {
   /** API key in the format `sk-XXXXX...` */
@@ -50,6 +51,7 @@ export class ThinkFleet {
   readonly contacts: ContactsResource
   readonly messageTemplates: MessageTemplatesResource
   readonly engagement: EngagementResource
+  readonly media: MediaResource
 
   constructor(options: ThinkFleetOptions) {
     if (!options.apiKey) {
@@ -85,5 +87,6 @@ export class ThinkFleet {
     this.contacts = new ContactsResource(http)
     this.messageTemplates = new MessageTemplatesResource(http)
     this.engagement = new EngagementResource(http)
+    this.media = new MediaResource(http)
   }
 }

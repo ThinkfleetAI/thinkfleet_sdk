@@ -27,7 +27,8 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test:integration": "tsx test-app.ts"
+    "test:integration": "tsx test-app.ts",
+    "seed:pizza": "tsx scripts/seed-pizza.ts"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
