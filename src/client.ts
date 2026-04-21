@@ -8,6 +8,8 @@ import { ConnectionsResource } from './resources/connections.js'
 import { VoiceResource } from './resources/voice.js'
 import { MemoryResource } from './resources/memory.js'
 import { FlowsResource } from './resources/flows.js'
+import { FlowRunsResource } from './resources/flow-runs.js'
+import { LocationsResource } from './resources/locations.js'
 import { ProjectsResource } from './resources/projects.js'
 import { GuardrailsResource } from './resources/guardrails.js'
 import { ShieldResource } from './resources/shield.js'
@@ -39,6 +41,8 @@ export class ThinkFleet {
   readonly voice: VoiceResource
   readonly memory: MemoryResource
   readonly flows: FlowsResource
+  readonly flowRuns: FlowRunsResource
+  readonly locations: LocationsResource
   readonly projects: ProjectsResource
   readonly guardrails: GuardrailsResource
   readonly shield: ShieldResource
@@ -71,6 +75,8 @@ export class ThinkFleet {
     this.voice = new VoiceResource(http)
     this.memory = new MemoryResource(http)
     this.flows = new FlowsResource(http, options.projectId)
+    this.flowRuns = new FlowRunsResource(http, options.projectId)
+    this.locations = new LocationsResource(http)
     this.projects = new ProjectsResource(http)
     this.guardrails = new GuardrailsResource(http)
     this.shield = new ShieldResource(http)
