@@ -26,7 +26,31 @@ export { ConnectionsResource } from './resources/connections.js'
 export { VoiceResource } from './resources/voice.js'
 export { MemoryResource, AdminMemoryResource, ProjectMemoryResource } from './resources/memory.js'
 export { FlowsResource } from './resources/flows.js'
+export { FlowRunsResource } from './resources/flow-runs.js'
+export { LocationsResource } from './resources/locations.js'
 export { ProjectsResource } from './resources/projects.js'
+
+export type {
+  Location,
+  LocationNode,
+  LocationMember,
+  LocationAddress,
+  LocationStatus,
+  LocationRole,
+  CreateLocationRequest,
+  UpdateLocationRequest,
+  MoveLocationRequest,
+  AddLocationMemberRequest,
+} from './types/locations.js'
+
+export type {
+  FlowRun,
+  FlowTemplateExport,
+  ListFlowRunsParams,
+  RunAndWaitOptions,
+  TerminalFlowRunStatus,
+} from './types/flows.js'
+export { TERMINAL_FLOW_RUN_STATUSES } from './types/flows.js'
 
 // Types — Memory (backward-compatible + new)
 export type {

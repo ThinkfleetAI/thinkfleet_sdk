@@ -184,6 +184,114 @@ const flow = await client.flows.create({ displayName: 'My Flow' })
 await client.flows.enable(flow.id)
 await client.flows.rename(flow.id, 'New Name')
 await client.flows.delete(flow.id)
+
+// Clone a flow between projects or locations
+const exported = await client.flows.getTemplate(sourceFlowId)
+const cloned = await client.flows.createFromJson(exported.template, {
+  displayName: 'Claims Intake — Denver',
+  locationId: denverLocationId,
+})
+
+// Seed a flow from a stored template (marketplace or private)
+const seeded = await client.flows.createFromTemplate('template-id', {
+  displayName: 'Onboarding v2',
+  locationId: denverLocationId,
+})
+
+// Kick off + poll for completion (alternative to runSync when flows are long-running)
+const finished = await client.flows.runAndWait('flow-id',
+  { payload: { caseId: '42' } },
+  {
+    timeoutMs: 10 * 60_000,
+    pollIntervalMs: 2_000,
+    onProgress: (run) => console.log(run.status),
+  },
+)
+if (finished.status !== 'SUCCEEDED') {
+  throw new Error(`Flow failed: ${finished.status}`)
+}
+```
+
+### Flow Runs
+
+Inspect historical runs and poll for completion manually:
+
+```typescript
+// List recent runs
+const runs = await client.flowRuns.list({ status: 'FAILED', limit: 50 })
+
+// Get a single run
+const run = await client.flowRuns.get('run-id')
+
+// Retry a failed run
+await client.flowRuns.retry('run-id')
+
+// Wait for a run that was started elsewhere
+const started = await client.flows.run('flow-id', { payload: { q: 'hi' } })
+const done = await client.flowRuns.wait(started.id, {
+  timeoutMs: 60_000,
+  onProgress: (r) => console.log(r.status),
+})
+
+// Check for terminal states
+import { TERMINAL_FLOW_RUN_STATUSES } from '@thinkfleet/sdk'
+
+if (TERMINAL_FLOW_RUN_STATUSES.includes(done.status)) {
+  // SUCCEEDED | FAILED | INTERNAL_ERROR | TIMEOUT | CANCELED |
+  // QUOTA_EXCEEDED | MEMORY_LIMIT_EXCEEDED
+}
+```
+
+### Locations
+
+Projects can contain a hierarchy of locations (regions → business units → stores/clinics/offices). Any location-scoped resource (flows, tasks, customers, interactions, memory, connections, knowledge-base, documents, voice calls, scheduled tasks) is automatically filtered by the active location when its id is passed.
+
+```typescript
+// Create a location tree
+const region = await client.locations.create({
+  name: 'West',
+  type: 'region',
+})
+const denver = await client.locations.create({
+  parentLocationId: region.id,
+  name: 'Denver Clinic',
+  type: 'clinic',
+  timezone: 'America/Denver',
+  address: {
+    street1: '1234 Market St',
+    city: 'Denver',
+    region: 'CO',
+    postalCode: '80202',
+    country: 'US',
+  },
+})
+
+// Fetch the full tree
+const tree = await client.locations.tree()
+
+// Scope a resource call to a specific location
+const flowsInDenver = await client.flows.list(undefined, {
+  locationId: denver.id,
+})
+const customersInDenver = await client.contacts.list({
+  locationId: denver.id,
+})
+
+// Update and move a location
+await client.locations.update(denver.id, { timezone: 'America/Denver' })
+await client.locations.move(denver.id, { newParentLocationId: null }) // promote to root
+
+// Members — control which users can access a location
+await client.locations.addMember(denver.id, {
+  userId: 'user-id',
+  role: 'manager',
+})
+const members = await client.locations.listMembers(denver.id)
+await client.locations.removeMember(denver.id, 'user-id')
+
+// Archive (soft) vs hard delete
+await client.locations.delete(denver.id)
+await client.locations.delete(denver.id, { hard: true })
 ```
 
 ### MCP Services
