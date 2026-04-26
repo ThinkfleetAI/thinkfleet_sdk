@@ -1,6 +1,6 @@
 {
   "name": "@thinkfleet/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "ThinkFleet SDK — TypeScript client for AI Agents, Crews, Knowledge Base, and MCP Services",
   "type": "module",
   "main": "./dist/index.cjs",

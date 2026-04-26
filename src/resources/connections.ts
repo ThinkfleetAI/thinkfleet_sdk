@@ -38,9 +38,21 @@ export class ConnectionsResource {
     return this.http.get('/app-connections', params as Record<string, string | number | boolean | undefined>, { ...options, rawPath: true, injectProjectId: true })
   }
 
-  /** Get a single connection by ID. */
+  /**
+   * Get a single connection by ID.
+   *
+   * The platform has no dedicated `GET /app-connections/{id}` endpoint, so this
+   * method fetches the project-scoped list and filters client-side. Throws
+   * `NotFoundError` if the ID isn't in the current project.
+   */
   async get(connectionId: string, options?: RequestOptions): Promise<Connection> {
-    return this.http.get<Connection>(`/app-connections/${connectionId}`, undefined, { ...options, rawPath: true })
+    const page = await this.list(undefined, options)
+    const found = page.data.find(c => c.id === connectionId)
+    if (!found) {
+      const { NotFoundError } = await import('../core/errors.js')
+      throw new NotFoundError(`Connection ${connectionId} not found in project`)
+    }
+    return found
   }
 
   /** Delete a connection. */

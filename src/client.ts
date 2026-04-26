@@ -21,7 +21,7 @@ export interface ThinkFleetOptions {
   apiKey: string
   /** Default project ID for all requests */
   projectId: string
-  /** Base URL of the ThinkFleet API (default: `https://api.thinkfleet.ai`) */
+  /** Base URL of the ThinkFleet API (default: `https://app.thinkfleet.ai`) */
   baseUrl?: string
   /** Maximum number of retries for failed requests (default: 2) */
   maxRetries?: number
@@ -60,7 +60,7 @@ export class ThinkFleet {
     const http = new HttpClient({
       apiKey: options.apiKey,
       projectId: options.projectId,
-      baseUrl: (options.baseUrl ?? 'https://api.thinkfleet.ai').replace(/\/+$/, ''),
+      baseUrl: (options.baseUrl ?? 'https://app.thinkfleet.ai').replace(/\/+$/, ''),
       maxRetries: options.maxRetries ?? 2,
       timeout: options.timeout ?? 30000,
       fetchFn: options.fetch ?? globalThis.fetch.bind(globalThis),

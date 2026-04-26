@@ -177,11 +177,11 @@ export class FlowsResource {
    * @example
    * ```ts
    * const exported = await tf.flows.getTemplate('flowId')
-   * // Save / version exported.template as JSON.
+   * // Save / version `exported` as JSON.
    * ```
    */
-  async getTemplate(flowId: string, options?: RequestOptions): Promise<{ template: FlowTemplateExport; [key: string]: unknown }> {
-    return this.http.get<{ template: FlowTemplateExport; [key: string]: unknown }>(
+  async getTemplate(flowId: string, options?: RequestOptions): Promise<FlowTemplateExport> {
+    return this.http.get<FlowTemplateExport>(
       `/flows/${flowId}/template`,
       undefined,
       raw(options),
