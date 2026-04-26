@@ -2,9 +2,7 @@ import type { HttpClient } from '../core/http-client.js'
 import type { RequestOptions } from '../core/types.js'
 import type {
   OrgPosition,
-  PopulatedOrgPosition,
   Goal,
-  BudgetRequest,
   ConnectedAgent,
   CreatePositionRequest,
   UpdatePositionRequest,
@@ -39,9 +37,33 @@ export class OrgPositionsResource {
     return this.http.get<OrgPosition[]>('/org-chart/positions', undefined, options)
   }
 
-  /** Get a position with its reports-to chain, direct reports, and goals. */
-  async get(positionId: string, options?: RequestOptions): Promise<PopulatedOrgPosition> {
-    return this.http.get<PopulatedOrgPosition>(`/org-chart/positions/${positionId}`, undefined, options)
+  /**
+   * Get a position. The platform has no `GET /org-chart/positions/{id}`
+   * endpoint, so this method fetches the list and filters client-side.
+   */
+  async get(positionId: string, options?: RequestOptions): Promise<OrgPosition> {
+    const all = await this.list(options)
+    const found = all.find(p => p.id === positionId)
+    if (!found) {
+      const { NotFoundError } = await import('../core/errors.js')
+      throw new NotFoundError(`Position ${positionId} not found`)
+    }
+    return found
+  }
+
+  /** List the direct reports of a position. */
+  async listReports(positionId: string, options?: RequestOptions): Promise<OrgPosition[]> {
+    return this.http.get<OrgPosition[]>(`/org-chart/positions/${positionId}/reports`, undefined, options)
+  }
+
+  /** Resolve the AI agent currently assigned to a position. */
+  async getAgent(positionId: string, options?: RequestOptions): Promise<unknown> {
+    return this.http.get<unknown>(`/org-chart/positions/${positionId}/agent`, undefined, options)
+  }
+
+  /** List deliverables produced by the agent at a position. */
+  async listDeliverables(positionId: string, options?: RequestOptions): Promise<unknown[]> {
+    return this.http.get<unknown[]>(`/org-chart/positions/${positionId}/deliverables`, undefined, options)
   }
 
   /** Create a new position. */
@@ -58,11 +80,6 @@ export class OrgPositionsResource {
   async delete(positionId: string, options?: RequestOptions): Promise<void> {
     return this.http.delete(`/org-chart/positions/${positionId}`, options)
   }
-
-  /** Get the current status of a position (heartbeat, current task, spend). */
-  async getStatus(positionId: string, options?: RequestOptions): Promise<{ status: string; currentTask?: string; spentCents: number; lastHeartbeat?: string }> {
-    return this.http.get(`/org-chart/positions/${positionId}/status`, undefined, options)
-  }
 }
 
 export class OrgGoalsResource {
@@ -77,9 +94,23 @@ export class OrgGoalsResource {
     )
   }
 
-  /** Get a goal with progress details. */
+  /**
+   * Get a goal. The platform has no `GET /org-chart/goals/{id}` endpoint,
+   * so this method fetches the list and filters client-side.
+   */
   async get(goalId: string, options?: RequestOptions): Promise<Goal> {
-    return this.http.get<Goal>(`/org-chart/goals/${goalId}`, undefined, options)
+    const all = await this.list(undefined, options)
+    const found = all.find(g => g.id === goalId)
+    if (!found) {
+      const { NotFoundError } = await import('../core/errors.js')
+      throw new NotFoundError(`Goal ${goalId} not found`)
+    }
+    return found
+  }
+
+  /** Get the activity log for a goal (status changes, child goals, agent runs). */
+  async getActivity(goalId: string, options?: RequestOptions): Promise<unknown[]> {
+    return this.http.get<unknown[]>(`/org-chart/goals/${goalId}/activity`, undefined, options)
   }
 
   /** Create a new goal for a position. */
@@ -102,9 +133,9 @@ export class OrgGoalsResource {
     return this.http.post<Goal[]>(`/org-chart/goals/${goalId}/decompose`, {}, { ...options, timeout: 120000 })
   }
 
-  /** Get roll-up progress across a goal and all its sub-goals. */
-  async getProgress(goalId: string, options?: RequestOptions): Promise<{ goalId: string; progressPercent: number; childGoals: Array<{ goalId: string; title: string; progressPercent: number }> }> {
-    return this.http.get(`/org-chart/goals/${goalId}/progress`, undefined, options)
+  /** Replan a goal (re-run AI planning to update sub-goals). */
+  async replan(goalId: string, options?: RequestOptions): Promise<Goal> {
+    return this.http.post<Goal>(`/org-chart/goals/${goalId}/replan`, {}, { ...options, timeout: 120000 })
   }
 }
 

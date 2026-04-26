@@ -1,383 +1,347 @@
 # @thinkfleet/sdk
 
-TypeScript SDK for the ThinkFleet AI platform. Build mobile, desktop, and web apps powered by AI Agents, Crews, Knowledge Base, and MCP Services.
+TypeScript SDK for the ThinkFleet AI platform. Build apps that drive AI Agents, Crews, Knowledge Bases, OAuth-managed Connections, MCP Services, an Org Chart of autonomous AI workers, and more — from any Node 18+, Bun, Deno, or modern-browser environment that supports `fetch`.
+
+> **Stability:** the surface is stable enough for internal app use. Every method shipped here is exercised against a live ThinkFleet platform via the integration test app (`test-app.ts`).
+
+---
 
 ## Install
 
 ```bash
 npm install @thinkfleet/sdk
+# or: pnpm add @thinkfleet/sdk
+# or: bun add @thinkfleet/sdk
 ```
 
-## Quick Start
+## Quick start
 
-```typescript
+```ts
 import { ThinkFleet } from '@thinkfleet/sdk'
 
-const client = new ThinkFleet({
-  apiKey: 'sk-...',
-  projectId: 'your-project-id',
-  baseUrl: 'https://api.thinkfleet.ai',
+const tf = new ThinkFleet({
+  apiKey: 'sk-...',                // Platform Admin → API Keys
+  projectId: 'your-project-id',    // Default project for all calls
+  baseUrl: 'https://app.thinkfleet.ai', // Optional. Defaults to https://app.thinkfleet.ai
 })
 
 // Chat with an agent
-const response = await client.agents.chat('agent-id', {
+const reply = await tf.agents.chat('agent-id', {
   sessionId: 'session-1',
-  message: 'Hello!',
+  message: 'Summarize today’s sales report.',
 })
-console.log(response.content)
+console.log(reply.content)
 ```
 
-## Features
+> The API lives at `app.thinkfleet.ai/api/v1/...`. The SDK adds the `/api/v1` prefix for you. Don’t put it in `baseUrl`.
 
-### Agents
+---
 
-```typescript
-// List agents
-const agents = await client.agents.list()
+## Configuration
 
-// Get agent details (includes tools)
-const agent = await client.agents.get('agent-id')
+```ts
+const tf = new ThinkFleet({
+  apiKey:    'sk-...',                    // Required
+  projectId: 'proj_...',                  // Required (default project)
+  baseUrl:   'https://app.thinkfleet.ai', // Default: https://app.thinkfleet.ai
+  maxRetries: 2,                          // Retries 429/5xx with exponential backoff
+  timeout:   30_000,                      // Default 30s. agents.chat overrides to 120s.
+  fetch:     globalThis.fetch,            // Bring your own (e.g. node-fetch < 18)
+  requestInterceptors:  [...],            // Mutate request init before send
+  responseInterceptors: [...],            // Inspect Response before JSON parse
+})
+```
 
-// Create an agent
-const newAgent = await client.agents.create({
-  name: 'My Agent',
-  systemPrompt: 'You are a helpful assistant.',
-  aiProvider: AiProvider.ANTHROPIC,
-  modelName: 'claude-sonnet-4-20250514',
+### Per-request project override
+
+Pass `projectId` in the per-request options to call into a different project than the client default:
+
+```ts
+await tf.flows.list(undefined, { projectId: 'proj_other' })
+```
+
+---
+
+## Resources
+
+The client exposes one property per resource. Every method returns a typed Promise (or AsyncGenerator for streaming).
+
+| Property            | Class                       | What it covers                                          |
+| ------------------- | --------------------------- | ------------------------------------------------------- |
+| `tf.agents`         | `AgentsResource`            | List/get agents, chat, streaming chat, manage tools     |
+| `tf.tasks`          | `TasksResource`             | Smart routing: classify, dispatch, history, follow-up   |
+| `tf.flows`          | `FlowsResource`             | CRUD flows, enable/disable, run, export/import templates|
+| `tf.flowRuns`       | `FlowRunsResource`          | List runs, retry, wait until terminal                   |
+| `tf.knowledgeBases` | `KnowledgeBasesResource`    | KB CRUD, search, documents, sources                     |
+| `tf.memory`         | `MemoryResource`            | Agent / project / admin scope memory                    |
+| `tf.connections`    | `ConnectionsResource`       | App connections (OAuth, API key, etc.) + test           |
+| `tf.oauth`          | `OAuthResource`             | OAuth provider catalog + integration configs (admin)    |
+| `tf.mcp`            | `McpResource`               | MCP server, integrations, external servers, skills      |
+| `tf.crews`          | `CrewsResource`             | Crews, projects, kanban boards, columns, tasks          |
+| `tf.orgChart`       | `OrgChartResource`          | Positions, goals, connected agents, cost summary        |
+| `tf.locations`      | `LocationsResource`         | Locations, tree, members                                |
+| `tf.projects`       | `ProjectsResource`          | Project list / get                                      |
+| `tf.guardrails`     | `GuardrailsResource`        | Policy, pattern catalog, test-scan                      |
+| `tf.shield`         | `ShieldResource`            | Shield Dashboard analytics (when plan permits)          |
+| `tf.voice`          | `VoiceResource`             | Voice catalog + TTS preview                             |
+
+---
+
+## Common patterns
+
+### Agents — chat & streaming
+
+```ts
+// Non-streaming
+const out = await tf.agents.chat(agentId, {
+  sessionId: 'sess-1',
+  message: 'What flows are failing today?',
 })
 
-// Chat (120s timeout for tool-heavy conversations)
-const response = await client.agents.chat('agent-id', {
-  sessionId: 'session-1',
-  message: 'Analyze this data...',
-})
+// Streaming (SSE-backed AsyncGenerator)
+for await (const event of tf.agents.chatStream(agentId, { sessionId: 'sess-1', message: 'Hello' })) {
+  if (event.event === 'token') process.stdout.write(event.data)
+}
+```
 
-// Manage agent tools
-await client.agents.tools.addKnowledgeBase('agent-id', {
-  displayName: 'Company Docs',
-  knowledgeBaseIds: ['kb-id'],
+### Agents — tools
+
+```ts
+await tf.agents.tools.addKnowledgeBase(agentId, {
+  displayName: 'Company docs',
+  knowledgeBaseIds: ['kb_...'],
   topK: 5,
 })
-```
-
-### Tasks (Smart Routing)
-
-```typescript
-// Classify a task to find the best agent
-const classification = await client.tasks.classify({
-  message: 'Write a Python script to parse CSV files',
-})
-// → { personaId, personaName, complexity, needsCrew, ... }
-
-// Dispatch to a single agent
-const { agentId, sessionId } = await client.tasks.dispatch({
-  personaId: classification.personaId,
-  message: 'Write a Python script to parse CSV files',
-})
-
-// Dispatch to a crew for complex tasks
-const crew = await client.tasks.dispatchCrew({
-  title: 'Build REST API',
-  personaIds: ['dev-persona', 'qa-persona'],
-  objective: 'Build and test a REST API for user management',
-})
-
-// Get conversation history
-const history = await client.tasks.getHistory(agentId, sessionId)
-
-// Send follow-up messages
-await client.tasks.sendFollowUp(agentId, sessionId, {
-  message: 'Can you also add error handling?',
+await tf.agents.tools.addIntegration(agentId, {
+  displayName: 'Send email via Gmail',
+  pieceName: '@activepieces/piece-gmail',
+  actionName: 'send_email',
+  connectionId: 'conn_...',
 })
 ```
 
-### Knowledge Base
+### Smart Tasks — classify → dispatch
 
-```typescript
-// Create a knowledge base
-const kb = await client.knowledgeBases.create({
+```ts
+const cls = await tf.tasks.classify({ message: 'Write a Python script to parse CSV.' })
+const { agentId, sessionId } = await tf.tasks.dispatch({
+  personaId: cls.personaId,
+  message: 'Write a Python script to parse CSV.',
+})
+const history = await tf.tasks.getHistory(agentId, sessionId)
+```
+
+### Flows — create, run, export
+
+```ts
+const flow = await tf.flows.create({ displayName: 'Lead-routing v1' })
+await tf.flows.update(flow.id, { /* operations */ })
+await tf.flows.enable(flow.id)
+const run = await tf.flows.runAndWait(flow.id, { input: { foo: 'bar' } })
+const exported = await tf.flows.getTemplate(flow.id) // FlowTemplateExport — name, type, summary, pieces, ...
+```
+
+### Knowledge bases
+
+```ts
+const kb = await tf.knowledgeBases.create({
   name: 'Company Docs',
   embeddingProvider: 'openai',
   embeddingModel: 'text-embedding-3-small',
   embeddingDimension: 1536,
 })
 
-// Upload documents
-await client.knowledgeBases.documents.upload(kb.id, file, 'report.pdf')
+const file = new File([new TextEncoder().encode('hello world')], 'note.txt', { type: 'text/plain' })
+const doc = await tf.knowledgeBases.documents.upload(kb.id, file)
+const chunks = await tf.knowledgeBases.documents.chunks(kb.id, doc.id)
 
-// Search across knowledge bases
-const results = await client.knowledgeBases.search({
-  query: 'What is our refund policy?',
+const hits = await tf.knowledgeBases.search({
+  query: 'PTO policy',
   knowledgeBaseIds: [kb.id],
-  topK: 5,
 })
 ```
 
-### Connections (OAuth)
+### Memory (three scopes)
 
-Connect third-party services via OAuth — works in mobile, desktop, and web apps.
-
-```typescript
-// 1. Check if native OAuth is configured for a service
-const method = await client.connections.methodForPiece('@activepieces/piece-gmail')
-console.log(method.method) // 'native' if credentials are configured
-
-// 2. Start OAuth flow
-const { authorizationUrl, sessionId } = await client.connections.initiate({
-  providerSlug: 'google',
-  callbackUrl: 'https://myapp.com/oauth/callback',
-  scopes: ['openid', 'email', 'https://www.googleapis.com/auth/gmail.modify'],
+```ts
+// Agent-scoped (default for agent learnings)
+await tf.memory.create(agentId, {
+  content: 'Customer prefers concise replies.',
+  type: MemoryItemType.PREFERENCE,
+  scope: MemoryScope.PROJECT,
 })
+const hits = await tf.memory.search(agentId, { query: 'preferences', limit: 5 })
 
-// 3. Open in browser/popup — user completes OAuth consent
-window.open(authorizationUrl)
-// Server handles the callback and creates the connection automatically
+// Admin (project-wide review queue, stats, promotion)
+const stats = await tf.memory.admin.stats()
+const queue = await tf.memory.admin.listPendingReview({ limit: 50 })
 
-// 4. List connections
-const { data: connections } = await client.connections.list()
-
-// 5. Test a connection (validates token, refreshes if expired)
-const result = await client.connections.test(connections[0].id)
-console.log(result.status) // 'active' | 'error'
+// User-scope (`tf.memory.user`) requires a per-user token, not a project API key.
 ```
 
-API key and Basic auth connections:
+### Connections — OAuth + API key + Composio fallback
 
-```typescript
-// Direct connect (no OAuth flow needed)
-const conn = await client.connections.connect({
-  providerSlug: 'openai',
-  connectionDisplayName: 'My OpenAI Key',
-  credentials: { api_key: 'sk-...' },
+```ts
+const all = await tf.connections.list()
+const conn = await tf.connections.get(all.data[0].id)         // resolved client-side from list
+const status = await tf.connections.test(conn.id)             // active | error
+const method = await tf.connections.methodForPiece('@activepieces/piece-gmail')
+// → { method: 'native' | 'composio', hasCredentials: boolean }
+
+// Start an OAuth Authorization-Code flow (returns a URL to redirect the user to)
+const { authorizationUrl, sessionId } = await tf.connections.initiate({
+  providerSlug: 'github',
+  callbackUrl: 'https://your.app/oauth/callback',
 })
-```
 
-Client Credentials grant (server-to-server):
-
-```typescript
-const conn = await client.connections.clientCredentials({
-  providerSlug: 'microsoft',
-  scopes: ['https://graph.microsoft.com/.default'],
+// Direct-connect API key / basic creds
+await tf.connections.connect({
+  pieceName: '@activepieces/piece-stripe',
+  displayName: 'Stripe — production',
+  value: { type: 'SECRET_TEXT', secretText: 'sk_live_...' },
 })
 ```
 
-### Flows
+### OAuth admin — provider catalog + integration configs
 
-```typescript
-// List flows
-const flows = await client.flows.list({ status: 'ENABLED', limit: 20 })
+```ts
+const providers = await tf.oauth.providers.list()  // SeekPage<OAuthProvider> — paginated
+const google = await tf.oauth.providers.get('google')
 
-// Run a flow asynchronously (returns immediately)
-const run = await client.flows.run('flow-id', {
-  payload: { email: 'user@example.com', name: 'John' },
+const configs = await tf.oauth.configs.list()      // SeekPage<IntegrationConfig> — platform OAuth apps
+const available = await tf.oauth.configs.listAvailable()
+await tf.oauth.configs.create({
+  providerSlug: 'github',
+  clientId: '...',
+  clientSecret: '...',
+  scopes: ['repo', 'user'],
 })
-console.log(run.id) // flow run ID
-
-// Run a flow synchronously (waits for completion)
-const result = await client.flows.runSync('flow-id', {
-  payload: { query: 'summarize this document' },
-})
-console.log(result) // flow output
-
-// CRUD operations
-const flow = await client.flows.create({ displayName: 'My Flow' })
-await client.flows.enable(flow.id)
-await client.flows.rename(flow.id, 'New Name')
-await client.flows.delete(flow.id)
-
-// Clone a flow between projects or locations
-const exported = await client.flows.getTemplate(sourceFlowId)
-const cloned = await client.flows.createFromJson(exported.template, {
-  displayName: 'Claims Intake — Denver',
-  locationId: denverLocationId,
-})
-
-// Seed a flow from a stored template (marketplace or private)
-const seeded = await client.flows.createFromTemplate('template-id', {
-  displayName: 'Onboarding v2',
-  locationId: denverLocationId,
-})
-
-// Kick off + poll for completion (alternative to runSync when flows are long-running)
-const finished = await client.flows.runAndWait('flow-id',
-  { payload: { caseId: '42' } },
-  {
-    timeoutMs: 10 * 60_000,
-    pollIntervalMs: 2_000,
-    onProgress: (run) => console.log(run.status),
-  },
-)
-if (finished.status !== 'SUCCEEDED') {
-  throw new Error(`Flow failed: ${finished.status}`)
-}
 ```
 
-### Flow Runs
+### MCP server
 
-Inspect historical runs and poll for completion manually:
+```ts
+const server = await tf.mcp.get()
+const { url, token } = await tf.mcp.getConnectionInfo() // share with Claude Code, Cursor, Codex, etc.
+const integrations = await tf.mcp.integrations.list()
+const externals    = await tf.mcp.externalServers.list()
+const skills       = await tf.mcp.skills()              // McpSkillsManifest (JSON, Claude format)
+const openapi      = await tf.mcp.skillsOpenApi()       // OpenAPI 3.0 YAML — raw string
+```
 
-```typescript
-// List recent runs
-const runs = await client.flowRuns.list({ status: 'FAILED', limit: 50 })
+### Crews + kanban boards
 
-// Get a single run
-const run = await client.flowRuns.get('run-id')
+```ts
+const crew = (await tf.crews.list())[0]
+const projects = await tf.crews.listProjects(crew.id)
+const board = await tf.crews.getBoard(crew.id, projects[0].id)
+const cost  = await tf.crews.getCostSummary(crew.id, projects[0].id)
+```
 
-// Retry a failed run
-await client.flowRuns.retry('run-id')
+### Org Chart — positions, goals, agents
 
-// Wait for a run that was started elsewhere
-const started = await client.flows.run('flow-id', { payload: { q: 'hi' } })
-const done = await client.flowRuns.wait(started.id, {
-  timeoutMs: 60_000,
-  onProgress: (r) => console.log(r.status),
-})
+```ts
+const positions = await tf.orgChart.positions.list()
+const pos = await tf.orgChart.positions.get(positions[0].id)         // resolved from list
+const reports = await tf.orgChart.positions.listReports(pos.id)
+const deliverables = await tf.orgChart.positions.listDeliverables(pos.id)
 
-// Check for terminal states
-import { TERMINAL_FLOW_RUN_STATUSES } from '@thinkfleet/sdk'
+const goals = await tf.orgChart.goals.list({ status: 'active' })
+const goal = await tf.orgChart.goals.get(goals[0].id)                // resolved from list
+const activity = await tf.orgChart.goals.getActivity(goal.id)
+await tf.orgChart.goals.decompose(goal.id)                           // AI subdivides into sub-goals
 
-if (TERMINAL_FLOW_RUN_STATUSES.includes(done.status)) {
-  // SUCCEEDED | FAILED | INTERNAL_ERROR | TIMEOUT | CANCELED |
-  // QUOTA_EXCEEDED | MEMORY_LIMIT_EXCEEDED
-}
+const cost = await tf.orgChart.getCostSummary()
 ```
 
 ### Locations
 
-Projects can contain a hierarchy of locations (regions → business units → stores/clinics/offices). Any location-scoped resource (flows, tasks, customers, interactions, memory, connections, knowledge-base, documents, voice calls, scheduled tasks) is automatically filtered by the active location when its id is passed.
-
-```typescript
-// Create a location tree
-const region = await client.locations.create({
-  name: 'West',
-  type: 'region',
-})
-const denver = await client.locations.create({
-  parentLocationId: region.id,
-  name: 'Denver Clinic',
-  type: 'clinic',
-  timezone: 'America/Denver',
-  address: {
-    street1: '1234 Market St',
-    city: 'Denver',
-    region: 'CO',
-    postalCode: '80202',
-    country: 'US',
-  },
-})
-
-// Fetch the full tree
-const tree = await client.locations.tree()
-
-// Scope a resource call to a specific location
-const flowsInDenver = await client.flows.list(undefined, {
-  locationId: denver.id,
-})
-const customersInDenver = await client.contacts.list({
-  locationId: denver.id,
-})
-
-// Update and move a location
-await client.locations.update(denver.id, { timezone: 'America/Denver' })
-await client.locations.move(denver.id, { newParentLocationId: null }) // promote to root
-
-// Members — control which users can access a location
-await client.locations.addMember(denver.id, {
-  userId: 'user-id',
-  role: 'manager',
-})
-const members = await client.locations.listMembers(denver.id)
-await client.locations.removeMember(denver.id, 'user-id')
-
-// Archive (soft) vs hard delete
-await client.locations.delete(denver.id)
-await client.locations.delete(denver.id, { hard: true })
+```ts
+const tree = await tf.locations.tree()
+const flat = await tf.locations.list()
+const loc = await tf.locations.get(flat[0].id)
+const members = await tf.locations.listMembers(loc.id)
 ```
 
-### MCP Services
+### Voice
 
-```typescript
-// Get MCP server config
-const server = await client.mcp.get()
-
-// List integrations
-const integrations = await client.mcp.integrations.list()
-
-// Add an integration (just use the piece short name)
-await client.mcp.integrations.add({
-  pieceName: 'slack',
-  pieceVersion: '0.1.0',
-  actionName: 'send_message',
-})
-
-// Export skills
-const skills = await client.mcp.skills()
+```ts
+const voices = tf.voice.listVoices()                          // sync — built-in catalog
+const eleven = tf.voice.listVoicesByProvider('elevenlabs')
+const audio  = await tf.voice.preview({ provider: 'elevenlabs', voiceId, text: 'Hello' }) // ArrayBuffer (audio/mpeg)
 ```
 
-### Crews
+### Guardrails
 
-```typescript
-// List crews
-const crews = await client.crews.list()
-
-// Get project board
-const board = await client.crews.getBoard('crew-id', 'project-id')
-
-// Create a task on the board
-await client.crews.tasks.create('project-id', {
-  title: 'Implement user auth',
-  priority: BoardTaskPriority.HIGH,
-})
-
-// Run a task (agent executes it)
-await client.crews.tasks.run('project-id', 'task-id')
+```ts
+const policy = await tf.guardrails.get()
+const catalog = await tf.guardrails.getPatternCatalog()
+const scan = await tf.guardrails.testScan({ text: 'My SSN is 123-45-6789.' })
+// → { matches: [{ patternId, matchedText, severity, ... }], ... }
 ```
 
-## Configuration
+### Shield (when platform plan has `shieldEnabled`)
 
-```typescript
-const client = new ThinkFleet({
-  apiKey: 'sk-...',           // Required — from Platform Admin
-  projectId: 'proj-...',      // Required — default project
-  baseUrl: 'https://...',     // Default: https://api.thinkfleet.ai
-  maxRetries: 2,              // Default: 2 (retries on 429/5xx)
-  timeout: 30000,             // Default: 30s (agent chat uses 120s)
-  fetch: customFetch,         // Custom fetch for React Native / testing
-})
+```ts
+const overview = await tf.shield.overview()
+const events   = await tf.shield.listEvents({ limit: 50 })
+const cost     = await tf.shield.costAnalytics({ startDate, endDate })
+const breakdown = await tf.shield.developerBreakdown()
 ```
 
-### Per-request project override
+---
 
-```typescript
-// Use a different project for one call
-const agents = await client.agents.list({ projectId: 'other-project' })
-```
+## Error handling
 
-## Error Handling
+The SDK throws typed errors so consumers can `instanceof` and recover precisely:
 
-```typescript
-import { ThinkFleetError, AuthenticationError, NotFoundError } from '@thinkfleet/sdk'
+```ts
+import {
+  ThinkFleetError,
+  AuthenticationError,    // 401
+  AuthorizationError,     // 403
+  NotFoundError,          // 404
+  ValidationError,        // 400 | 422
+  RateLimitError,         // 429 (auto-retried up to maxRetries)
+  ServerError,            // 5xx (auto-retried up to maxRetries)
+  TimeoutError,           // request timed out
+} from '@thinkfleet/sdk'
 
 try {
-  await client.agents.get('invalid-id')
-} catch (error) {
-  if (error instanceof AuthenticationError) {
-    // Invalid API key (401)
-  } else if (error instanceof NotFoundError) {
-    // Agent not found (404)
-  } else if (error instanceof ThinkFleetError) {
-    console.log(error.statusCode, error.code, error.message)
-  }
+  await tf.agents.chat(id, { sessionId, message })
+} catch (err) {
+  if (err instanceof RateLimitError)   { /* respect err.retryAfterMs */ }
+  else if (err instanceof TimeoutError) { /* extend timeout */ }
+  else if (err instanceof ThinkFleetError) { console.error(err.statusCode, err.code, err.message) }
+  else throw err
 }
 ```
 
-Error classes: `AuthenticationError` (401), `AuthorizationError` (403), `NotFoundError` (404), `ValidationError` (400), `RateLimitError` (429), `ServerError` (5xx), `TimeoutError`.
+---
+
+## Validating against your platform
+
+`test-app.ts` exercises every public endpoint against a live platform. To run it:
+
+```bash
+export THINKFLEET_API_KEY="sk-..."
+export THINKFLEET_PROJECT_ID="proj_..."
+export THINKFLEET_BASE_URL="https://app.thinkfleet.ai"
+npx tsx test-app.ts
+```
+
+You should see roughly: **~73 passed, 0 failed, ~33 skipped** (skipped = destructive admin operations or features that need extra setup like ElevenLabs credits).
+
+Tests use the prefix `SDK_TEST_<timestamp>` for any entity they create, then delete on success.
+
+---
 
 ## Requirements
 
-- Node.js 18+ (uses native `fetch`)
-- Works in browsers and React Native
+- Node 18+ (or Bun, Deno, or a modern browser supporting `fetch` + `ReadableStream`)
+- A ThinkFleet API key with at least project-read scope
+- A project ID (Platform Admin → Projects)
 
 ## License
 
-MIT
+Apache-2.0 © ThinkFleet
