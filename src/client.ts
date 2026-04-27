@@ -15,6 +15,7 @@ import { GuardrailsResource } from './resources/guardrails.js'
 import { ShieldResource } from './resources/shield.js'
 import { OAuthResource } from './resources/oauth.js'
 import { OrgChartResource } from './resources/org-chart.js'
+import { EventDestinationsResource } from './resources/event-destinations.js'
 
 export interface ThinkFleetOptions {
   /** API key in the format `sk-XXXXX...` */
@@ -48,6 +49,7 @@ export class ThinkFleet {
   readonly shield: ShieldResource
   readonly oauth: OAuthResource
   readonly orgChart: OrgChartResource
+  readonly eventDestinations: EventDestinationsResource
 
   constructor(options: ThinkFleetOptions) {
     if (!options.apiKey) {
@@ -82,5 +84,6 @@ export class ThinkFleet {
     this.shield = new ShieldResource(http)
     this.oauth = new OAuthResource(http)
     this.orgChart = new OrgChartResource(http)
+    this.eventDestinations = new EventDestinationsResource(http)
   }
 }

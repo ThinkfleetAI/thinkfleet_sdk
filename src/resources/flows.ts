@@ -132,6 +132,34 @@ export class FlowsResource {
   }
 
   /**
+   * Construct the public webhook URL for a flow with a "Catch Webhook"
+   * trigger. The URL is deterministic — `${baseUrl}/api/v1/webhooks/${flowId}`
+   * — so this method just builds it from the SDK's configured baseUrl.
+   *
+   * Pass `sync: true` to get the synchronous variant (waits for the flow
+   * to complete and returns the output).
+   *
+   * Authentication: webhook URLs are public by design — anyone with the
+   * URL can trigger the flow. If your flow needs auth, gate it inside
+   * the flow itself (check headers, body, or use the connection-token
+   * pattern).
+   *
+   * @example
+   * ```ts
+   * const url = tf.flows.getWebhookUrl('myFlowId')
+   * // -> 'https://app.thinkfleet.ai/api/v1/webhooks/myFlowId'
+   *
+   * const syncUrl = tf.flows.getWebhookUrl('myFlowId', { sync: true })
+   * // -> 'https://app.thinkfleet.ai/api/v1/webhooks/myFlowId/sync'
+   * ```
+   */
+  getWebhookUrl(flowId: string, opts?: { sync?: boolean }): string {
+    const baseUrl = (this.http as any).options?.baseUrl ?? ''
+    const suffix = opts?.sync ? '/sync' : ''
+    return `${baseUrl}/api/v1/webhooks/${flowId}${suffix}`
+  }
+
+  /**
    * Run a flow asynchronously via its webhook trigger.
    * Returns immediately with the flow run ID.
    *
