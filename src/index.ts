@@ -284,6 +284,17 @@ export type {
   ListShieldRequestsParams,
 } from './types/shield.js'
 
+// Resources — Event Destinations (webhook subscriptions for platform events)
+export { EventDestinationsResource } from './resources/event-destinations.js'
+export type {
+  EventDestination,
+  CreateEventDestinationRequest,
+  UpdateEventDestinationRequest,
+  ListEventDestinationsParams,
+  TestEventDestinationRequest,
+} from './types/event-destinations.js'
+export { ApplicationEventName } from './types/event-destinations.js'
+
 // Resources — OAuth (Provider Registry + Credential Governance)
 export { OAuthResource, OAuthProvidersResource, OAuthConfigsResource } from './resources/oauth.js'
 export type {
