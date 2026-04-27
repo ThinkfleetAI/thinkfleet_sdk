@@ -18,6 +18,7 @@ export interface ProjectPlan {
 
 export interface UpdateProjectRequest {
   displayName?: string
+  externalId?: string
   notifyStatus?: string
   releasesEnabled?: boolean
   plan?: Partial<ProjectPlan>
