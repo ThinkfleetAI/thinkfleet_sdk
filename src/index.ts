@@ -228,6 +228,11 @@ export type {
   SubmitFeedbackRequest,
   ListMemoryParams,
   MemoryStats,
+  AgentMemoryBlock,
+  SetMemoryBlockRequest,
+  AppendMemoryBlockRequest,
+  GetMemoryBlockRequest,
+  ListMemoryBlocksRequest,
 } from './types/memory.js'
 export {
   MemoryItemType,
