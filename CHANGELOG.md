@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.0 — 2026-04-29
+
+### Fixed
+
+- **`flows.enable()` / `flows.disable()` returned the synchronous
+  pre-flip flow instead of waiting for the status change to finalize.**
+  Server processes status changes in two phases: (1) sync — queue a
+  background job, set `operationStatus: ENABLING`, return the flow
+  with `status: DISABLED`; (2) async — register trigger sources, then
+  flip `status` to the target and reset `operationStatus`. The SDK
+  was returning the phase-1 response, so callers saw
+  `status: DISABLED` immediately after calling `enable()`. The SDK
+  now polls `GET /flows/:id` until both `status` matches the target
+  and `operationStatus` is `NONE`. Default poll: 1s interval, 30s
+  timeout. Pass `{ wait: false }` for the legacy fire-and-forget
+  behavior. **Behavior change**: `enable()` / `disable()` now block
+  for ~1–10s until the flow settles.
+
+### Added
+
+- **`flows.waitForStatus(flowId, target, options)`** — exposed
+  helper for callers who change status via `update()` directly and
+  need to wait on the final state.
+- **`Flow.operationStatus`** — typed `'NONE' | 'ENABLING' | 'DISABLING' | 'DELETING' | null`.
+  Surfaces the in-flight status flip the server already returns.
+
 ## 0.3.0 — 2026-04-25
 
 ### Fixed

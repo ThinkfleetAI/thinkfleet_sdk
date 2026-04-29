@@ -111,17 +111,93 @@ export class FlowsResource {
   }
 
   /**
-   * Enable a flow (convenience method).
+   * Enable a flow.
+   *
+   * The server processes a status flip in two phases:
+   *   1. Synchronous: queues a background job, sets `operationStatus`
+   *      to `ENABLING`, returns the flow with `status: DISABLED`.
+   *   2. Asynchronous: trigger sources register, then `status` flips
+   *      to `ENABLED` and `operationStatus` resets to `NONE`.
+   *
+   * This method waits through phase 2 so the returned flow reflects
+   * the final state. Pass `{ wait: false }` to get the legacy fire-
+   * and-forget behavior (returns immediately after phase 1).
+   *
+   * @example
+   * ```ts
+   * const flow = await tf.flows.enable('flowId')
+   * // flow.status === 'ENABLED'
+   * ```
    */
-  async enable(flowId: string, options?: RequestOptions): Promise<PopulatedFlow> {
-    return this.update(flowId, { type: 'CHANGE_STATUS', request: { status: 'ENABLED' as any } }, options)
+  async enable(
+    flowId: string,
+    options?: RequestOptions & { wait?: boolean; pollIntervalMs?: number; pollTimeoutMs?: number },
+  ): Promise<PopulatedFlow> {
+    const flow = await this.update(
+      flowId,
+      { type: 'CHANGE_STATUS', request: { status: 'ENABLED' as any } },
+      options,
+    )
+    if (options?.wait === false) return flow
+    return this.waitForStatus(flowId, 'ENABLED', options)
   }
 
   /**
-   * Disable a flow (convenience method).
+   * Disable a flow. Same async behavior as {@link enable}.
+   *
+   * @example
+   * ```ts
+   * const flow = await tf.flows.disable('flowId')
+   * // flow.status === 'DISABLED'
+   * ```
    */
-  async disable(flowId: string, options?: RequestOptions): Promise<PopulatedFlow> {
-    return this.update(flowId, { type: 'CHANGE_STATUS', request: { status: 'DISABLED' as any } }, options)
+  async disable(
+    flowId: string,
+    options?: RequestOptions & { wait?: boolean; pollIntervalMs?: number; pollTimeoutMs?: number },
+  ): Promise<PopulatedFlow> {
+    const flow = await this.update(
+      flowId,
+      { type: 'CHANGE_STATUS', request: { status: 'DISABLED' as any } },
+      options,
+    )
+    if (options?.wait === false) return flow
+    return this.waitForStatus(flowId, 'DISABLED', options)
+  }
+
+  /**
+   * Poll `GET /flows/:id` until the flow reaches the target status AND
+   * `operationStatus` is settled. Bounded by `pollTimeoutMs` (default
+   * 30s) and `pollIntervalMs` (default 1s).
+   *
+   * Internal helper for {@link enable} and {@link disable}, but exposed
+   * for callers who want to wait on a status change applied through
+   * `update()` directly.
+   */
+  async waitForStatus(
+    flowId: string,
+    target: 'ENABLED' | 'DISABLED',
+    options?: RequestOptions & { pollIntervalMs?: number; pollTimeoutMs?: number },
+  ): Promise<PopulatedFlow> {
+    const intervalMs = options?.pollIntervalMs ?? 1000
+    const timeoutMs = options?.pollTimeoutMs ?? 30_000
+    const deadline = Date.now() + timeoutMs
+
+    let last: PopulatedFlow | null = null
+    while (Date.now() < deadline) {
+      const flow = await this.get(flowId, options)
+      last = flow
+      const settled =
+        flow.status === target &&
+        (flow.operationStatus === 'NONE' ||
+          flow.operationStatus == null)
+      if (settled) return flow
+      await new Promise((r) => setTimeout(r, intervalMs))
+    }
+
+    // Timed out waiting. Return whatever we last saw — the caller can
+    // inspect `operationStatus` to decide whether to keep waiting,
+    // surface an error, or accept the in-flight state.
+    return last ?? this.get(flowId, options)
   }
 
   /**

@@ -20,6 +20,14 @@ export interface Flow extends BaseModel {
   status: FlowStatus
   schedule?: Record<string, unknown> | null
   publishedVersionId?: string | null
+  /**
+   * Transitional status while a flow status change is being applied
+   * (e.g. trigger source registration runs in a background job after
+   * the API responds). `'NONE'` means there's no in-flight operation;
+   * `'ENABLING'` / `'DISABLING'` mean the status flip has been queued
+   * but not yet finalized; `'DELETING'` means the flow is being deleted.
+   */
+  operationStatus?: 'NONE' | 'ENABLING' | 'DISABLING' | 'DELETING' | null
 }
 
 export interface PopulatedFlow extends Flow {
