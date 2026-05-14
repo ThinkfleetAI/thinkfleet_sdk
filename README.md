@@ -84,6 +84,8 @@ The client exposes one property per resource. Every method returns a typed Promi
 | `tf.guardrails`     | `GuardrailsResource`        | Policy, pattern catalog, test-scan                      |
 | `tf.shield`         | `ShieldResource`            | Shield Dashboard analytics (when plan permits)          |
 | `tf.voice`          | `VoiceResource`             | Voice catalog + TTS preview                             |
+| `tf.lattice`        | `LatticeResource`           | Behavioral pattern intelligence — extract, monitor, retrieve, search |
+| `tf.eventDestinations` | `EventDestinationsResource` | Webhook subscriptions for platform events            |
 
 ---
 
@@ -288,6 +290,32 @@ const events   = await tf.shield.listEvents({ limit: 50 })
 const cost     = await tf.shield.costAnalytics({ startDate, endDate })
 const breakdown = await tf.shield.developerBreakdown()
 ```
+
+### Lattice — behavioral pattern intelligence
+
+```ts
+// Bulk extract patterns across the project
+const { patternsCreated, patternsRefreshed } = await tf.lattice.extractPatterns({ windowDays: 90 })
+
+// List contacts that have at least one active pattern
+const { contacts } = await tf.lattice.listContacts({ activeOnly: true })
+
+// Drill into one contact's patterns + full retrieval bundle
+const patterns = await tf.lattice.listPatterns(contactId)
+const ctx      = await tf.lattice.getContext(contactId, { eventLimit: 15, memoryLimit: 10 })
+
+// Manually run the monitor tick (cron does this every 15 min)
+const tick = await tf.lattice.runMonitorTick()
+console.log(`${tick.breaksEmitted} pattern_break events emitted`)
+
+// Cross-entity search across contacts, events, and patterns
+const hits = await tf.lattice.search({ q: 'pizza', types: ['contact', 'pattern'] })
+```
+
+When a pattern goes overdue past its tolerance window, the engine emits a
+`pattern_break` contact event — subscribe to it via the
+`customer-engagement` piece's `pattern-break` trigger (in flows) or via
+`tf.eventDestinations` (as a webhook).
 
 ---
 

@@ -295,6 +295,39 @@ export type {
 } from './types/event-destinations.js'
 export { ApplicationEventName } from './types/event-destinations.js'
 
+// Resources — Lattice (behavioral pattern intelligence)
+export { LatticeResource } from './resources/lattice.js'
+export type {
+  BehaviorPatternKind,
+  Cadence,
+  BehaviorPatternMetadata,
+  ExtractPatternsRequest,
+  ContactExtractError,
+  ExtractPatternsResult,
+  PatternFailure,
+  MonitorTickResult,
+  LatticeContactSummary,
+  ListLatticeContactsParams,
+  ListLatticeContactsResponse,
+  PatternSummary,
+  ListPatternsParams,
+  ListPatternsResponse,
+  ContactContextContact,
+  ContactContextEvent,
+  ContactContextMemory,
+  ContactContextResponse,
+  GetContextParams,
+  LatticeSearchScope,
+  LatticeSearchContactHit,
+  LatticeSearchEventHit,
+  LatticeSearchPatternHit,
+  LatticeSearchParams,
+  LatticeSearchResponse,
+  RunDemoSeedRequest,
+  RunDemoSeedTemplateResult,
+  RunDemoSeedResult,
+} from './types/lattice.js'
+
 // Resources — OAuth (Provider Registry + Credential Governance)
 export { OAuthResource, OAuthProvidersResource, OAuthConfigsResource } from './resources/oauth.js'
 export type {
