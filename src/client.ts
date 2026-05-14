@@ -16,6 +16,7 @@ import { ShieldResource } from './resources/shield.js'
 import { OAuthResource } from './resources/oauth.js'
 import { OrgChartResource } from './resources/org-chart.js'
 import { EventDestinationsResource } from './resources/event-destinations.js'
+import { LatticeResource } from './resources/lattice.js'
 
 export interface ThinkFleetOptions {
   /** API key in the format `sk-XXXXX...` */
@@ -50,6 +51,7 @@ export class ThinkFleet {
   readonly oauth: OAuthResource
   readonly orgChart: OrgChartResource
   readonly eventDestinations: EventDestinationsResource
+  readonly lattice: LatticeResource
 
   constructor(options: ThinkFleetOptions) {
     if (!options.apiKey) {
@@ -85,5 +87,6 @@ export class ThinkFleet {
     this.oauth = new OAuthResource(http)
     this.orgChart = new OrgChartResource(http)
     this.eventDestinations = new EventDestinationsResource(http)
+    this.lattice = new LatticeResource(http)
   }
 }

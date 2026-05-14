@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.5.0 — 2026-05-14
+
+### Added
+
+- **`tf.lattice` — Lattice behavioral pattern intelligence.** Mines
+  contact event history for recurring patterns (weekly purchase, daily
+  login, Friday-evening orders, entity preferences, bundles) and emits
+  `pattern_break` contact events when an expected pattern fails to
+  fire. Server-side is a Rust gRPC engine; the SDK speaks REST to the
+  ThinkFleet API which translates to gRPC.
+  - `lattice.extractPatterns({ contactId?, windowDays?, force? })` —
+    force re-extraction (single contact or bulk across the project,
+    capped at 5000 contacts per call server-side).
+  - `lattice.runMonitorTick()` — manually run the monitor (cron
+    handles this every 15 min in normal operation).
+  - `lattice.listContacts({ limit?, offset?, activeOnly? })` — list
+    contacts with at least one behavior pattern.
+  - `lattice.listPatterns(contactId, { limit?, offset?, includeInactive? })`
+    — list a contact's patterns.
+  - `lattice.getContext(contactId, { eventLimit?, memoryLimit? })` —
+    full retrieval bundle (profile + active patterns + recent events +
+    recent memories) for AI message rendering.
+  - `lattice.search({ q, types?, limit? })` — cross-entity free-text
+    search across contacts, contact events, and behavior patterns.
+  - `lattice.runDemoSeed({ contactsPerTemplate?, historyDays? })` —
+    dev/QA only; gated server-side by `AP_ALLOW_DEMO_SEED=true`.
+  - Full type surface: `BehaviorPatternKind`, `BehaviorPatternMetadata`,
+    `Cadence`, `LatticeContactSummary`, `PatternSummary`,
+    `ContactContextResponse`, `LatticeSearchResponse`, etc.
+
 ## 0.4.0 — 2026-04-29
 
 ### Fixed
