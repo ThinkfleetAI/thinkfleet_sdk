@@ -12,6 +12,8 @@ import type {
   ListPatternsParams,
   ListPatternsResponse,
   MonitorTickResult,
+  ObserveActivityRequest,
+  ObserveActivityResult,
   RunDemoSeedRequest,
   RunDemoSeedResult,
 } from '../types/lattice.js'
@@ -167,5 +169,50 @@ export class LatticeResource {
     options?: RequestOptions,
   ): Promise<RunDemoSeedResult> {
     return this.http.post<RunDemoSeedResult>('/lattice/demo/seed', body, options)
+  }
+
+  /**
+   * Record a generic activity for any subject — contact, user,
+   * workspace, or service. The engine mines patterns from these
+   * events the same way it mines from contact events.
+   *
+   * Use this for non-contact subjects (developers, employees, local
+   * workstations, headless services). For traditional contact events,
+   * keep using the existing contact-events route — those are still
+   * mirrored into `lattice_activity` automatically server-side, so the
+   * engine sees both sources uniformly.
+   *
+   * Rate-limited at 600 calls/minute/project, so a backfill of a few
+   * hundred recent events from a desktop client fits in one batch.
+   *
+   * @example
+   * ```ts
+   * // Workspace usage tracking
+   * await tf.lattice.observe({
+   *   subjectType: 'workspace',
+   *   subjectId: 'ryan@desktop',
+   *   activityType: 'tool_invoked',
+   *   title: 'GitHub MCP — list_issues',
+   *   activityData: { tool: 'github-mcp', operation: 'list_issues' },
+   *   occurredAt: new Date().toISOString(),
+   *   source: 'sdk',
+   * })
+   *
+   * // Dev workflow
+   * await tf.lattice.observe({
+   *   subjectType: 'user',
+   *   subjectId: userId,
+   *   activityType: 'code_commit',
+   *   title: 'feat: add Lattice observe()',
+   *   activityData: { repo: 'thinkfleet_sdk', branch: 'main', files: 3 },
+   *   occurredAt: new Date().toISOString(),
+   * })
+   * ```
+   */
+  async observe(
+    body: ObserveActivityRequest,
+    options?: RequestOptions,
+  ): Promise<ObserveActivityResult> {
+    return this.http.post<ObserveActivityResult>('/lattice/activity', body, options)
   }
 }

@@ -59,6 +59,30 @@ export class AgentsResource {
     return this.http.get<PopulatedAgent>(`/chatbots/${agentId}`, undefined, options)
   }
 
+  /**
+   * Find an agent by display name. Returns `null` when no match exists.
+   * Comparison is case-insensitive and trims surrounding whitespace.
+   *
+   * Useful for SDK consumers who know the agent by name but don't
+   * want to hard-code its 21-char id. Reach for `list()` directly when
+   * you need to inspect every agent or filter on something other
+   * than name.
+   *
+   * @example
+   * ```ts
+   * const research = await tf.agents.findByName('Research Agent')
+   * if (research) {
+   *   const reply = await tf.agents.chat(research.id, { message: 'Summarize Q4' })
+   * }
+   * ```
+   */
+  async findByName(name: string, options?: RequestOptions): Promise<Agent | null> {
+    const needle = name.trim().toLowerCase()
+    if (needle.length === 0) return null
+    const agents = await this.list(options)
+    return agents.find((a) => a.name.trim().toLowerCase() === needle) ?? null
+  }
+
   async create(body: CreateAgentRequest, options?: RequestOptions): Promise<Agent> {
     return this.http.post<Agent>('/chatbots', { ...body, type: 'AGENT' }, options)
   }
