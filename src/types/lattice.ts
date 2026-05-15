@@ -255,6 +255,42 @@ export interface LatticeSearchResponse {
   truncated: boolean
 }
 
+// ── Subjects + generic activity ingest ──────────────────────────
+//
+// Lattice mines patterns from any subject's activity stream, not just
+// `clawdbot_contact` rows. SubjectType discriminates the kind:
+//   - `contact`   — existing customer/contact record (21-char ApId)
+//   - `user`      — authenticated user (21-char ApId)
+//   - `workspace` — local workstation / desktop ("ryan@desktop")
+//   - `service`   — headless worker / job ("billing-cron-job")
+//
+// Free-form ids work for workspace/service since those don't have a
+// platform-issued ApId. The engine compares subjectId as an opaque
+// string — no FK on lattice_activity.subjectId.
+export type SubjectType = 'contact' | 'user' | 'workspace' | 'service'
+
+export interface ObserveActivityRequest {
+  subjectType: SubjectType
+  subjectId: string
+  /** Free-form per domain (`purchase`, `code_commit`, `tool_invoked`, …). */
+  activityType: string
+  /** Short human-readable title for the dashboard. Optional. */
+  title?: string
+  /** Long-form free text. Optional. */
+  description?: string
+  /** Structured payload — entityIds, amount, etc. Optional. */
+  activityData?: Record<string, unknown>
+  /** ISO 8601 timestamp the activity occurred at. */
+  occurredAt: string
+  /** Where the activity came from (`sdk`, `mcp`, `webhook`, …). Optional. */
+  source?: string
+}
+
+export interface ObserveActivityResult {
+  /** The 21-char id assigned to the persisted activity row. */
+  id: string
+}
+
 // ── Demo seed (dev/QA only — gated by AP_ALLOW_DEMO_SEED) ───────
 
 export interface RunDemoSeedRequest {
