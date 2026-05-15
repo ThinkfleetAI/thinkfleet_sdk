@@ -15,6 +15,10 @@ import { GuardrailsResource } from './resources/guardrails.js'
 import { ShieldResource } from './resources/shield.js'
 import { OAuthResource } from './resources/oauth.js'
 import { OrgChartResource } from './resources/org-chart.js'
+import { ContactsResource } from './resources/contacts.js'
+import { MessageTemplatesResource } from './resources/message-templates.js'
+import { EngagementResource } from './resources/engagement.js'
+import { MediaResource } from './resources/media.js'
 import { EventDestinationsResource } from './resources/event-destinations.js'
 import { LatticeResource } from './resources/lattice.js'
 
@@ -50,6 +54,10 @@ export class ThinkFleet {
   readonly shield: ShieldResource
   readonly oauth: OAuthResource
   readonly orgChart: OrgChartResource
+  readonly contacts: ContactsResource
+  readonly messageTemplates: MessageTemplatesResource
+  readonly engagement: EngagementResource
+  readonly media: MediaResource
   readonly eventDestinations: EventDestinationsResource
   readonly lattice: LatticeResource
 
@@ -86,6 +94,10 @@ export class ThinkFleet {
     this.shield = new ShieldResource(http)
     this.oauth = new OAuthResource(http)
     this.orgChart = new OrgChartResource(http)
+    this.contacts = new ContactsResource(http)
+    this.messageTemplates = new MessageTemplatesResource(http)
+    this.engagement = new EngagementResource(http)
+    this.media = new MediaResource(http)
     this.eventDestinations = new EventDestinationsResource(http)
     this.lattice = new LatticeResource(http)
   }
