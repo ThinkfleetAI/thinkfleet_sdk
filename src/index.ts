@@ -26,7 +26,31 @@ export { ConnectionsResource } from './resources/connections.js'
 export { VoiceResource } from './resources/voice.js'
 export { MemoryResource, AdminMemoryResource, ProjectMemoryResource } from './resources/memory.js'
 export { FlowsResource } from './resources/flows.js'
+export { FlowRunsResource } from './resources/flow-runs.js'
+export { LocationsResource } from './resources/locations.js'
 export { ProjectsResource } from './resources/projects.js'
+
+export type {
+  Location,
+  LocationNode,
+  LocationMember,
+  LocationAddress,
+  LocationStatus,
+  LocationRole,
+  CreateLocationRequest,
+  UpdateLocationRequest,
+  MoveLocationRequest,
+  AddLocationMemberRequest,
+} from './types/locations.js'
+
+export type {
+  FlowRun,
+  FlowTemplateExport,
+  ListFlowRunsParams,
+  RunAndWaitOptions,
+  TerminalFlowRunStatus,
+} from './types/flows.js'
+export { TERMINAL_FLOW_RUN_STATUSES } from './types/flows.js'
 
 // Types — Memory (backward-compatible + new)
 export type {
@@ -259,6 +283,50 @@ export type {
   ShieldDeveloperBreakdown,
   ListShieldRequestsParams,
 } from './types/shield.js'
+
+// Resources — Event Destinations (webhook subscriptions for platform events)
+export { EventDestinationsResource } from './resources/event-destinations.js'
+export type {
+  EventDestination,
+  CreateEventDestinationRequest,
+  UpdateEventDestinationRequest,
+  ListEventDestinationsParams,
+  TestEventDestinationRequest,
+} from './types/event-destinations.js'
+export { ApplicationEventName } from './types/event-destinations.js'
+
+// Resources — Lattice (behavioral pattern intelligence)
+export { LatticeResource } from './resources/lattice.js'
+export type {
+  BehaviorPatternKind,
+  Cadence,
+  BehaviorPatternMetadata,
+  ExtractPatternsRequest,
+  ContactExtractError,
+  ExtractPatternsResult,
+  PatternFailure,
+  MonitorTickResult,
+  LatticeContactSummary,
+  ListLatticeContactsParams,
+  ListLatticeContactsResponse,
+  PatternSummary,
+  ListPatternsParams,
+  ListPatternsResponse,
+  ContactContextContact,
+  ContactContextEvent,
+  ContactContextMemory,
+  ContactContextResponse,
+  GetContextParams,
+  LatticeSearchScope,
+  LatticeSearchContactHit,
+  LatticeSearchEventHit,
+  LatticeSearchPatternHit,
+  LatticeSearchParams,
+  LatticeSearchResponse,
+  RunDemoSeedRequest,
+  RunDemoSeedTemplateResult,
+  RunDemoSeedResult,
+} from './types/lattice.js'
 
 // Resources — OAuth (Provider Registry + Credential Governance)
 export { OAuthResource, OAuthProvidersResource, OAuthConfigsResource } from './resources/oauth.js'

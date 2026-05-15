@@ -1,5 +1,5 @@
 import type { HttpClient } from '../core/http-client.js'
-import type { RequestOptions } from '../core/types.js'
+import type { RequestOptions, SeekPage } from '../core/types.js'
 import type {
   OAuthProvider,
   IntegrationConfig,
@@ -64,9 +64,9 @@ export class OAuthResource {
 export class OAuthProvidersResource {
   constructor(private readonly http: HttpClient) {}
 
-  /** List all available OAuth providers (400+). */
-  async list(params?: ListProvidersParams, options?: RequestOptions): Promise<OAuthProvider[]> {
-    return this.http.get<OAuthProvider[]>(
+  /** List all available OAuth providers (400+). Paginated via cursor. */
+  async list(params?: ListProvidersParams, options?: RequestOptions): Promise<SeekPage<OAuthProvider>> {
+    return this.http.get<SeekPage<OAuthProvider>>(
       '/providers',
       params as Record<string, string | number | boolean | undefined>,
       { ...options, rawPath: true },
@@ -82,14 +82,15 @@ export class OAuthProvidersResource {
 export class OAuthConfigsResource {
   constructor(private readonly http: HttpClient) {}
 
-  /** List integration configs (project + platform defaults). */
-  async list(options?: RequestOptions): Promise<IntegrationConfig[]> {
-    return this.http.get<IntegrationConfig[]>('/integration-configs', undefined, options)
+  /** List integration configs (project + platform defaults). Paginated. */
+  async list(options?: RequestOptions): Promise<SeekPage<IntegrationConfig>> {
+    return this.http.get<SeekPage<IntegrationConfig>>('/integration-configs', undefined, options)
   }
 
   /** List providers with active connections and connection counts. */
   async listAvailable(options?: RequestOptions): Promise<AvailableProvider[]> {
-    return this.http.get<AvailableProvider[]>('/integration-configs/available', undefined, options)
+    const wrapped = await this.http.get<{ data: AvailableProvider[] }>('/integration-configs/available', undefined, options)
+    return wrapped.data
   }
 
   /** Create or update OAuth app credentials for a provider. */

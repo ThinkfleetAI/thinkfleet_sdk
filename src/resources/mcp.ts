@@ -83,8 +83,9 @@ export class McpResource {
     return this.http.get<McpSkillsManifest>('/mcp-server/skills.json', undefined, options)
   }
 
+  /** Skills manifest as an OpenAPI 3.0 YAML document. Returned as raw string. */
   async skillsOpenApi(options?: RequestOptions): Promise<string> {
-    return this.http.get<string>('/mcp-server/skills.openapi.yaml', undefined, options)
+    return this.http.getText('/mcp-server/skills.openapi.yaml', undefined, options)
   }
 
   /**

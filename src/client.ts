@@ -8,6 +8,8 @@ import { ConnectionsResource } from './resources/connections.js'
 import { VoiceResource } from './resources/voice.js'
 import { MemoryResource } from './resources/memory.js'
 import { FlowsResource } from './resources/flows.js'
+import { FlowRunsResource } from './resources/flow-runs.js'
+import { LocationsResource } from './resources/locations.js'
 import { ProjectsResource } from './resources/projects.js'
 import { GuardrailsResource } from './resources/guardrails.js'
 import { ShieldResource } from './resources/shield.js'
@@ -17,13 +19,15 @@ import { ContactsResource } from './resources/contacts.js'
 import { MessageTemplatesResource } from './resources/message-templates.js'
 import { EngagementResource } from './resources/engagement.js'
 import { MediaResource } from './resources/media.js'
+import { EventDestinationsResource } from './resources/event-destinations.js'
+import { LatticeResource } from './resources/lattice.js'
 
 export interface ThinkFleetOptions {
   /** API key in the format `sk-XXXXX...` */
   apiKey: string
   /** Default project ID for all requests */
   projectId: string
-  /** Base URL of the ThinkFleet API (default: `https://api.thinkfleet.ai`) */
+  /** Base URL of the ThinkFleet API (default: `https://app.thinkfleet.ai`) */
   baseUrl?: string
   /** Maximum number of retries for failed requests (default: 2) */
   maxRetries?: number
@@ -43,6 +47,8 @@ export class ThinkFleet {
   readonly voice: VoiceResource
   readonly memory: MemoryResource
   readonly flows: FlowsResource
+  readonly flowRuns: FlowRunsResource
+  readonly locations: LocationsResource
   readonly projects: ProjectsResource
   readonly guardrails: GuardrailsResource
   readonly shield: ShieldResource
@@ -52,6 +58,8 @@ export class ThinkFleet {
   readonly messageTemplates: MessageTemplatesResource
   readonly engagement: EngagementResource
   readonly media: MediaResource
+  readonly eventDestinations: EventDestinationsResource
+  readonly lattice: LatticeResource
 
   constructor(options: ThinkFleetOptions) {
     if (!options.apiKey) {
@@ -64,7 +72,7 @@ export class ThinkFleet {
     const http = new HttpClient({
       apiKey: options.apiKey,
       projectId: options.projectId,
-      baseUrl: (options.baseUrl ?? 'https://api.thinkfleet.ai').replace(/\/+$/, ''),
+      baseUrl: (options.baseUrl ?? 'https://app.thinkfleet.ai').replace(/\/+$/, ''),
       maxRetries: options.maxRetries ?? 2,
       timeout: options.timeout ?? 30000,
       fetchFn: options.fetch ?? globalThis.fetch.bind(globalThis),
@@ -79,6 +87,8 @@ export class ThinkFleet {
     this.voice = new VoiceResource(http)
     this.memory = new MemoryResource(http)
     this.flows = new FlowsResource(http, options.projectId)
+    this.flowRuns = new FlowRunsResource(http, options.projectId)
+    this.locations = new LocationsResource(http)
     this.projects = new ProjectsResource(http)
     this.guardrails = new GuardrailsResource(http)
     this.shield = new ShieldResource(http)
@@ -88,5 +98,7 @@ export class ThinkFleet {
     this.messageTemplates = new MessageTemplatesResource(http)
     this.engagement = new EngagementResource(http)
     this.media = new MediaResource(http)
+    this.eventDestinations = new EventDestinationsResource(http)
+    this.lattice = new LatticeResource(http)
   }
 }

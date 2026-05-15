@@ -22,6 +22,39 @@ export class HttpClient {
     return this.request<T>(url, { method: 'GET' }, requestOptions)
   }
 
+  /**
+   * GET that returns the response body as a raw string instead of parsing
+   * JSON. Used for endpoints that emit YAML, plain text, or another non-JSON
+   * format.
+   */
+  async getText(path: string, params?: Record<string, string | number | boolean | undefined>, requestOptions?: RequestOptions): Promise<string> {
+    const url = this.buildUrl(path, params, requestOptions)
+    const timeout = requestOptions?.timeout ?? this.options.timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    try {
+      const response = await this.options.fetchFn(url, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${this.options.apiKey}` },
+        signal: requestOptions?.signal ?? controller.signal,
+      })
+      clearTimeout(timeoutId)
+      const body = await response.text()
+      if (!response.ok) {
+        throw new ThinkFleetError(body || `HTTP ${response.status}`, response.status, 'REQUEST_FAILED')
+      }
+      return body
+    }
+    catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof ThinkFleetError) throw error
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new TimeoutError(`Request timed out after ${timeout}ms`)
+      }
+      throw new ThinkFleetError(`Network error: ${(error as Error).message}`, 0, 'NETWORK_ERROR')
+    }
+  }
+
   async post<T>(path: string, body?: unknown, requestOptions?: RequestOptions): Promise<T> {
     const url = this.buildUrl(path, undefined, requestOptions)
     return this.request<T>(url, {
