@@ -76,3 +76,76 @@ export interface MethodForPieceResponse {
     defaultScopes: string[]
   } | null
 }
+
+// -----------------------------------------------------------------------------
+// Global (platform-scoped) connections
+// -----------------------------------------------------------------------------
+
+export type AppConnectionStatus = 'ACTIVE' | 'MISSING' | 'ERROR'
+
+/**
+ * Platform-scoped (global) connection — visible to one or more projects on the
+ * platform. When `allProjects` is true the connection is visible to every
+ * project on the platform, including projects created after the connection.
+ */
+export interface GlobalConnection {
+  id: string
+  created: string
+  updated: string
+  externalId: string
+  displayName: string
+  type: string
+  pieceName: string
+  providerSlug: string | null
+  /** When `allProjects` is true this is empty; otherwise the explicit allowlist. */
+  projectIds: string[]
+  /** When true the connection is available to all projects on the platform, including future ones. */
+  allProjects: boolean
+  platformId: string | null
+  status: AppConnectionStatus
+  ownerId: string | null
+  metadata: Record<string, unknown> | null
+  pieceVersion: string
+}
+
+export interface ListGlobalConnectionsParams {
+  cursor?: string
+  limit?: number
+  displayName?: string
+  pieceName?: string
+  status?: AppConnectionStatus[]
+}
+
+export interface UpsertGlobalConnectionRequest {
+  /** Connection type — typically a value of `AppConnectionType` ('OAUTH2', 'SECRET_TEXT', etc.) */
+  type: string
+  pieceName: string
+  displayName: string
+  value: Record<string, unknown>
+  /** Projects this connection is available to. Ignored when `allProjects: true`; pass `[]`. */
+  projectIds: string[]
+  /** Set to true to make the connection available to every project on the platform, including future ones. */
+  allProjects?: boolean
+  externalId?: string
+  metadata?: Record<string, unknown>
+  pieceVersion?: string
+}
+
+export interface UpdateGlobalConnectionRequest {
+  displayName: string
+  /** Ignored when `allProjects: true`. */
+  projectIds?: string[]
+  /** Toggle "available to all projects". */
+  allProjects?: boolean
+  metadata?: Record<string, unknown>
+}
+
+export interface AddProjectsToGlobalConnectionRequest {
+  /** One or more project IDs to add. Existing IDs are deduped, so calling this is idempotent. */
+  projectIds: string[]
+}
+
+export interface RemoveProjectsFromGlobalConnectionRequest {
+  /** One or more project IDs to remove. */
+  projectIds: string[]
+}

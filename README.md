@@ -75,6 +75,7 @@ The client exposes one property per resource. Every method returns a typed Promi
 | `tf.knowledgeBases` | `KnowledgeBasesResource`    | KB CRUD, search, documents, sources                     |
 | `tf.memory`         | `MemoryResource`            | Agent / project / admin scope memory                    |
 | `tf.connections`    | `ConnectionsResource`       | App connections (OAuth, API key, etc.) + test           |
+| `tf.connections.global` | `GlobalConnectionsResource` | Platform-scoped connections shared across projects (admin) |
 | `tf.oauth`          | `OAuthResource`             | OAuth provider catalog + integration configs (admin)    |
 | `tf.mcp`            | `McpResource`               | MCP server, integrations, external servers, skills      |
 | `tf.crews`          | `CrewsResource`             | Crews, projects, kanban boards, columns, tasks          |
@@ -202,6 +203,49 @@ await tf.connections.connect({
   displayName: 'Stripe — production',
   value: { type: 'SECRET_TEXT', secretText: 'sk_live_...' },
 })
+```
+
+### Global connections — share one credential across many projects
+
+A **global connection** is owned by the platform (not a single project) and made visible to one or more projects. Pass `allProjects: true` to share with every project on the platform, including projects created *after* the call — no more "add my new project to every global connection" toil.
+
+Requires a **platform-admin** API key. Project-scoped keys hit `403`.
+
+```ts
+// Option A — set-and-forget: applies to all current AND future projects
+const conn = await tf.connections.global.upsert({
+  type: 'SECRET_TEXT',
+  pieceName: 'openai',
+  displayName: 'OpenAI (platform-wide)',
+  value: { type: 'SECRET_TEXT', secret_text: process.env.OPENAI_API_KEY! },
+  projectIds: [],         // ignored when allProjects: true — pass []
+  allProjects: true,
+})
+console.log(conn.id, conn.allProjects) // → "<id>", true
+
+// Option B — explicit allowlist
+await tf.connections.global.upsert({
+  type: 'SECRET_TEXT',
+  pieceName: 'openai',
+  displayName: 'OpenAI (team A + team B)',
+  value: { type: 'SECRET_TEXT', secret_text: process.env.OPENAI_API_KEY! },
+  projectIds: ['proj_a', 'proj_b'],
+})
+
+// Toggle "all projects" on an existing connection (no need to recreate)
+await tf.connections.global.update(conn.id, {
+  displayName: conn.displayName,
+  allProjects: true,
+})
+
+// Idempotently grant a newly-created project access to existing globals
+const project = await tf.projects.create({ displayName: 'New Project' })
+await tf.connections.global.addProjects(conn.id, { projectIds: [project.id] })
+
+// Other operations
+await tf.connections.global.list({ pieceName: 'openai' })
+await tf.connections.global.removeProjects(conn.id, { projectIds: ['proj_a'] })
+await tf.connections.global.delete(conn.id)
 ```
 
 ### OAuth admin — provider catalog + integration configs
