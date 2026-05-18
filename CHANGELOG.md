@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.0 — 2026-05-18
+
+### Added
+
+- **`tf.connections.global` — platform-scoped (global) connections.** Create
+  a single credential and share it across one or many projects without
+  re-issuing it per project.
+  - `tf.connections.global.upsert({ ..., allProjects: true, projectIds: [] })`
+    — set-and-forget: connection automatically applies to every project on
+    the platform, including projects created *after* the call. This is the
+    answer to the recurring "do I have to add my new project to every global
+    connection?" question.
+  - `tf.connections.global.upsert({ ..., projectIds: ['proj_a', 'proj_b'] })`
+    — selective allowlist when you don't want everything.
+  - `tf.connections.global.addProjects(id, { projectIds })` /
+    `removeProjects(id, { projectIds })` — idempotent project allowlist
+    edits without rewriting the full array. Useful from a project-creation
+    hook.
+  - `tf.connections.global.list({ ... })`, `update(id, body)`, `delete(id)`.
+  - All routes require platform-admin credentials.
+
 ## 0.5.0 — 2026-05-14
 
 ### Added

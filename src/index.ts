@@ -22,7 +22,7 @@ export { TasksResource } from './resources/tasks.js'
 export { KnowledgeBasesResource, KnowledgeBaseDocumentsResource, KnowledgeBaseSourcesResource } from './resources/knowledge-bases.js'
 export { McpResource, McpIntegrationsResource, McpExternalServersResource, type McpSkillsManifest } from './resources/mcp.js'
 export { CrewsResource, CrewColumnsResource, CrewTasksResource } from './resources/crews.js'
-export { ConnectionsResource } from './resources/connections.js'
+export { ConnectionsResource, GlobalConnectionsResource } from './resources/connections.js'
 export { VoiceResource } from './resources/voice.js'
 export { MemoryResource, AdminMemoryResource, ProjectMemoryResource } from './resources/memory.js'
 export { FlowsResource } from './resources/flows.js'
@@ -185,6 +185,13 @@ export type {
   TestConnectionResponse,
   ListConnectionsParams,
   MethodForPieceResponse,
+  AppConnectionStatus,
+  GlobalConnection,
+  ListGlobalConnectionsParams,
+  UpsertGlobalConnectionRequest,
+  UpdateGlobalConnectionRequest,
+  AddProjectsToGlobalConnectionRequest,
+  RemoveProjectsFromGlobalConnectionRequest,
 } from './types/connections.js'
 
 // Types — Voice
