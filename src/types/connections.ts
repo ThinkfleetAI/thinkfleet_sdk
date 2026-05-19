@@ -15,7 +15,7 @@ export interface Connection extends BaseModel {
 export interface InitiateConnectionRequest {
   /** Provider slug from the provider registry, e.g. "microsoft", "google", "github" */
   providerSlug: string
-  /** Optional piece name for internal bookkeeping, e.g. "@activepieces/piece-gmail" */
+  /** Optional piece name — short form ("gmail") preferred; long form ("@thinkfleet/piece-gmail") also accepted */
   pieceName?: string
   /** Display name for the connection */
   connectionDisplayName?: string

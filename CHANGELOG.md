@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.7.0 — 2026-05-18
+
+### Changed
+
+- **Canonical piece-name prefix is now `@thinkfleet/piece-*`.** The SDK no
+  longer surfaces the upstream `@activepieces/...` brand anywhere on its
+  public API — request bodies, response bodies, types, JSDoc, and README
+  examples all use the ThinkFleet form. Short names like `'gmail'` continue
+  to work and are still the recommended way to refer to a piece.
+  - `normalizePieceName('gmail')` now returns `'@thinkfleet/piece-gmail'`
+    (was `'@activepieces/piece-gmail'`).
+  - The HTTP client auto-rewrites any `@activepieces/piece-*` strings still
+    emitted by the platform in response payloads to `@thinkfleet/piece-*`
+    before handing the data to your code. Existing callers reading
+    `connection.pieceName` will see `'@thinkfleet/piece-gmail'` going forward.
+  - Legacy callers passing `'@activepieces/piece-X'` continue to work — the
+    SDK upgrades it to the canonical form before sending.
+- **Wire format change.** Request bodies now carry `pieceName: '@thinkfleet/piece-X'`.
+  Requires the platform to run the matching translation shim (shipped in
+  the platform release dated 2026-05-18). Older platform builds will
+  reject the new prefix.
+
+### Added
+
+- `denormalizeLegacyPiecePrefix(value)` — single-string rewriter.
+- `rewriteLegacyPiecePrefixDeep(value)` — recursive walker used by the
+  HTTP client; exposed for callers who fetch responses outside the SDK
+  but want the same normalization.
+
 ## 0.6.0 — 2026-05-18
 
 ### Added

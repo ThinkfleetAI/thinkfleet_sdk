@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import { ThinkFleet } from '../src/client'
+import {
+  normalizePieceName,
+  denormalizeLegacyPiecePrefix,
+  rewriteLegacyPiecePrefixDeep,
+} from '../src/core/piece-name'
 
 // Mock fetch that captures requests for verification
 function createCapturingFetch() {
@@ -298,7 +303,7 @@ describe('McpResource', () => {
     await tf.mcp.integrations.add({ pieceName: 'gmail', actionName: 'send_email' } as any)
     expect(calls[0].url).toContain('/mcp-server/piece-tools')
     const body = JSON.parse(calls[0].init.body as string)
-    expect(body.pieceName).toBe('@activepieces/piece-gmail')
+    expect(body.pieceName).toBe('@thinkfleet/piece-gmail')
   })
 })
 
@@ -339,5 +344,65 @@ describe('ConnectionsResource', () => {
     const tf = createClient(mockFetch)
     await tf.connections.isConfigured()
     expect(calls[0].url).toContain('/composio/configured')
+  })
+})
+
+describe('piece-name normalization', () => {
+  it('expands short names to @thinkfleet/piece-*', () => {
+    expect(normalizePieceName('gmail')).toBe('@thinkfleet/piece-gmail')
+  })
+
+  it('expands piece-* shorthand to @thinkfleet/piece-*', () => {
+    expect(normalizePieceName('piece-gmail')).toBe('@thinkfleet/piece-gmail')
+  })
+
+  it('passes canonical @thinkfleet/piece-* through unchanged', () => {
+    expect(normalizePieceName('@thinkfleet/piece-gmail')).toBe('@thinkfleet/piece-gmail')
+  })
+
+  it('upgrades legacy @activepieces/piece-* to canonical form (back-compat)', () => {
+    expect(normalizePieceName('@activepieces/piece-gmail')).toBe('@thinkfleet/piece-gmail')
+  })
+
+  it('denormalizeLegacyPiecePrefix rewrites a single string', () => {
+    expect(denormalizeLegacyPiecePrefix('@activepieces/piece-stripe')).toBe('@thinkfleet/piece-stripe')
+  })
+
+  it('rewriteLegacyPiecePrefixDeep walks nested objects and arrays', () => {
+    const input = {
+      pieceName: '@activepieces/piece-gmail',
+      steps: [
+        { settings: { pieceName: '@activepieces/piece-stripe' } },
+      ],
+      other: 'unrelated',
+    }
+    const out = rewriteLegacyPiecePrefixDeep(input) as typeof input
+    expect(out.pieceName).toBe('@thinkfleet/piece-gmail')
+    expect(out.steps[0].settings.pieceName).toBe('@thinkfleet/piece-stripe')
+    expect(out.other).toBe('unrelated')
+  })
+
+  it('rewriteLegacyPiecePrefixDeep returns the same reference when nothing changed', () => {
+    const input = { foo: 'bar', n: 42, nested: { ok: true } }
+    expect(rewriteLegacyPiecePrefixDeep(input)).toBe(input)
+  })
+
+  it('http response is auto-rewritten to canonical prefix', async () => {
+    const responseBody = {
+      data: [{ pieceName: '@activepieces/piece-slack', displayName: 'Slack' }],
+      next: null,
+      previous: null,
+    }
+    const mockFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(responseBody),
+      text: () => Promise.resolve(''),
+      headers: { get: () => null },
+      body: null,
+    }))
+    const tf = createClient(mockFetch)
+    const page = await tf.connections.list()
+    expect(page.data[0].pieceName).toBe('@thinkfleet/piece-slack')
   })
 })
