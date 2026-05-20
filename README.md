@@ -117,7 +117,7 @@ await tf.agents.tools.addKnowledgeBase(agentId, {
 })
 await tf.agents.tools.addIntegration(agentId, {
   displayName: 'Send email via Gmail',
-  pieceName: '@activepieces/piece-gmail',
+  pieceName: 'gmail',
   actionName: 'send_email',
   connectionId: 'conn_...',
 })
@@ -188,7 +188,7 @@ const queue = await tf.memory.admin.listPendingReview({ limit: 50 })
 const all = await tf.connections.list()
 const conn = await tf.connections.get(all.data[0].id)         // resolved client-side from list
 const status = await tf.connections.test(conn.id)             // active | error
-const method = await tf.connections.methodForPiece('@activepieces/piece-gmail')
+const method = await tf.connections.methodForPiece('gmail')
 // → { method: 'native' | 'composio', hasCredentials: boolean }
 
 // Start an OAuth Authorization-Code flow (returns a URL to redirect the user to)
@@ -199,7 +199,7 @@ const { authorizationUrl, sessionId } = await tf.connections.initiate({
 
 // Direct-connect API key / basic creds
 await tf.connections.connect({
-  pieceName: '@activepieces/piece-stripe',
+  pieceName: 'stripe',
   displayName: 'Stripe — production',
   value: { type: 'SECRET_TEXT', secretText: 'sk_live_...' },
 })

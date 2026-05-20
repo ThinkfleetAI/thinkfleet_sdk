@@ -8,6 +8,7 @@ import {
   ServerError,
   TimeoutError,
 } from './errors.js'
+import { rewriteLegacyPiecePrefixDeep } from './piece-name.js'
 import type { HttpClientOptions, RequestOptions } from './types.js'
 
 export class HttpClient {
@@ -305,7 +306,8 @@ export class HttpClient {
           if (response.status === 204) {
             return undefined as T
           }
-          return await response.json() as T
+          const parsed = await response.json()
+          return rewriteLegacyPiecePrefixDeep(parsed) as T
         }
 
         const errorBody = await response.text().catch(() => '')

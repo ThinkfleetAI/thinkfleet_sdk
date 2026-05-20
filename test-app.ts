@@ -621,7 +621,7 @@ async function testConnections() {
   })
 
   await test('check method for piece (gmail)', async () => {
-    const m = await tf.connections.methodForPiece('@activepieces/piece-gmail')
+    const m = await tf.connections.methodForPiece('gmail')
     assert(m.method === 'native' || m.method === 'composio', 'should return valid method')
     console.log(`     gmail: ${m.method} (creds: ${m.hasCredentials})`)
   })

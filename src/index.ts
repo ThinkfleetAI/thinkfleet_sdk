@@ -14,7 +14,11 @@ export {
 } from './core/errors.js'
 
 export type { SeekPage, RequestOptions, RequestInterceptor, ResponseInterceptor } from './core/types.js'
-export { normalizePieceName } from './core/piece-name.js'
+export {
+  normalizePieceName,
+  denormalizeLegacyPiecePrefix,
+  rewriteLegacyPiecePrefixDeep,
+} from './core/piece-name.js'
 
 // Resources
 export { AgentsResource, AgentToolsResource } from './resources/agents.js'
