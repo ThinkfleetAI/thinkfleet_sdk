@@ -1,6 +1,6 @@
 # @thinkfleet/sdk
 
-TypeScript SDK for the ThinkFleet AI platform. Build apps that drive AI Agents, Crews, Knowledge Bases, OAuth-managed Connections, MCP Services, an Org Chart of autonomous AI workers, and more — from any Node 18+, Bun, Deno, or modern-browser environment that supports `fetch`.
+TypeScript SDK for the ThinkFleet AI platform. Build apps on sandboxed Functions and connected Databases, give AI agents your tools over MCP, and drive Flows, Connections, customer intelligence (Lattice + engagement), Knowledge Bases and external Secret Managers — from any Node 18+, Bun, Deno, or modern-browser environment that supports `fetch`.
 
 > **Stability:** the surface is stable enough for internal app use. Every method shipped here is exercised against a live ThinkFleet platform via the integration test app (`test-app.ts`).
 
@@ -25,12 +25,9 @@ const tf = new ThinkFleet({
   baseUrl: 'https://app.thinkfleet.ai', // Optional. Defaults to https://app.thinkfleet.ai
 })
 
-// Chat with an agent
-const reply = await tf.agents.chat('agent-id', {
-  sessionId: 'session-1',
-  message: 'Summarize today’s sales report.',
-})
-console.log(reply.content)
+// Run a flow and wait for the result
+const run = await tf.flows.run('flow-id', { input: { customer: 'acme' } })
+console.log(run.status)
 ```
 
 > The API lives at `app.thinkfleet.ai/api/v1/...`. The SDK adds the `/api/v1` prefix for you. Don’t put it in `baseUrl`.
@@ -68,71 +65,27 @@ The client exposes one property per resource. Every method returns a typed Promi
 
 | Property            | Class                       | What it covers                                          |
 | ------------------- | --------------------------- | ------------------------------------------------------- |
-| `tf.agents`         | `AgentsResource`            | List/get agents, chat, streaming chat, manage tools     |
-| `tf.tasks`          | `TasksResource`             | Smart routing: classify, dispatch, history, follow-up   |
+| `tf.functions`      | `FunctionsResource`         | Sandboxed code as an API: CRUD, run, test, runs, keys, public `invoke` |
+| `tf.databases`      | `DatabasesResource`         | Connect Postgres, schema, FQL and SQL queries           |
 | `tf.flows`          | `FlowsResource`             | CRUD flows, enable/disable, run, export/import templates|
 | `tf.flowRuns`       | `FlowRunsResource`          | List runs, retry, wait until terminal                   |
-| `tf.knowledgeBases` | `KnowledgeBasesResource`    | KB CRUD, search, documents, sources                     |
-| `tf.memory`         | `MemoryResource`            | Agent / project / admin scope memory                    |
+| `tf.mcp`            | `McpResource`               | MCP server, token, tool-call audit log, `listTools` / `callTool` |
+| `tf.contacts`       | `ContactsResource`          | Customer records, lookup by phone/email/external ID, events |
+| `tf.lattice`        | `LatticeResource`           | Behavior patterns, predictions (pattern breaks), contact context |
+| `tf.engagement`     | `EngagementResource`        | Engagement rules, executions, outcomes, promotions, dispatch log |
 | `tf.connections`    | `ConnectionsResource`       | App connections (OAuth, API key, etc.) + test           |
 | `tf.connections.global` | `GlobalConnectionsResource` | Platform-scoped connections shared across projects (admin) |
 | `tf.oauth`          | `OAuthResource`             | OAuth provider catalog + integration configs (admin)    |
-| `tf.mcp`            | `McpResource`               | MCP server, integrations, external servers, skills      |
-| `tf.crews`          | `CrewsResource`             | Crews, projects, kanban boards, columns, tasks          |
-| `tf.orgChart`       | `OrgChartResource`          | Positions, goals, connected agents, cost summary        |
+| `tf.secretManagers` | `SecretManagersResource`    | BYO external vault (HashiCorp/AWS/Conjur/1Password) for connection secrets |
+| `tf.knowledgeBases` | `KnowledgeBasesResource`    | KB CRUD, search, documents, sources                     |
 | `tf.locations`      | `LocationsResource`         | Locations, tree, members                                |
 | `tf.projects`       | `ProjectsResource`          | Project list / get                                      |
 | `tf.guardrails`     | `GuardrailsResource`        | Policy, pattern catalog, test-scan                      |
-| `tf.shield`         | `ShieldResource`            | Shield Dashboard analytics (when plan permits)          |
-| `tf.voice`          | `VoiceResource`             | Voice catalog + TTS preview                             |
-| `tf.lattice`        | `LatticeResource`           | Behavioral pattern intelligence — extract, monitor, retrieve, search |
 | `tf.eventDestinations` | `EventDestinationsResource` | Webhook subscriptions for platform events            |
 
 ---
 
 ## Common patterns
-
-### Agents — chat & streaming
-
-```ts
-// Non-streaming
-const out = await tf.agents.chat(agentId, {
-  sessionId: 'sess-1',
-  message: 'What flows are failing today?',
-})
-
-// Streaming (SSE-backed AsyncGenerator)
-for await (const event of tf.agents.chatStream(agentId, { sessionId: 'sess-1', message: 'Hello' })) {
-  if (event.event === 'token') process.stdout.write(event.data)
-}
-```
-
-### Agents — tools
-
-```ts
-await tf.agents.tools.addKnowledgeBase(agentId, {
-  displayName: 'Company docs',
-  knowledgeBaseIds: ['kb_...'],
-  topK: 5,
-})
-await tf.agents.tools.addIntegration(agentId, {
-  displayName: 'Send email via Gmail',
-  pieceName: 'gmail',
-  actionName: 'send_email',
-  connectionId: 'conn_...',
-})
-```
-
-### Smart Tasks — classify → dispatch
-
-```ts
-const cls = await tf.tasks.classify({ message: 'Write a Python script to parse CSV.' })
-const { agentId, sessionId } = await tf.tasks.dispatch({
-  personaId: cls.personaId,
-  message: 'Write a Python script to parse CSV.',
-})
-const history = await tf.tasks.getHistory(agentId, sessionId)
-```
 
 ### Flows — create, run, export
 
@@ -162,24 +115,6 @@ const hits = await tf.knowledgeBases.search({
   query: 'PTO policy',
   knowledgeBaseIds: [kb.id],
 })
-```
-
-### Memory (three scopes)
-
-```ts
-// Agent-scoped (default for agent learnings)
-await tf.memory.create(agentId, {
-  content: 'Customer prefers concise replies.',
-  type: MemoryItemType.PREFERENCE,
-  scope: MemoryScope.PROJECT,
-})
-const hits = await tf.memory.search(agentId, { query: 'preferences', limit: 5 })
-
-// Admin (project-wide review queue, stats, promotion)
-const stats = await tf.memory.admin.stats()
-const queue = await tf.memory.admin.listPendingReview({ limit: 50 })
-
-// User-scope (`tf.memory.user`) requires a per-user token, not a project API key.
 ```
 
 ### Connections — OAuth + API key + Composio fallback
@@ -264,120 +199,124 @@ await tf.oauth.configs.create({
 })
 ```
 
-### MCP server
+### Functions — your code as an API
+
+Functions run in a sandbox (no filesystem, environment or private network) with
+`ctx.db.<name>` for bound databases, `ctx.fetch` for the public internet and
+`ctx.sleep`.
 
 ```ts
-const server = await tf.mcp.get()
-const { url, token } = await tf.mcp.getConnectionInfo() // share with Claude Code, Cursor, Codex, etc.
-const integrations = await tf.mcp.integrations.list()
-const externals    = await tf.mcp.externalServers.list()
-const skills       = await tf.mcp.skills()              // McpSkillsManifest (JSON, Claude format)
-const openapi      = await tf.mcp.skillsOpenApi()       // OpenAPI 3.0 YAML — raw string
+const fn = await tf.functions.create({
+  name: 'top-customers',
+  databases: ['shop'],
+  inputs: { limit: 'number' },
+  publicEnabled: true,   // POST /api/v1/fn/:id with the function key
+  mcpEnabled: true,      // fn_top_customers_xxxx tool on the project MCP server
+  sourceCode: {
+    packageJson: '{}',
+    code: `export default async ({ limit = 10 }, ctx) =>
+      ctx.db.shop.find('customers', { orderBy: '-lifetime_value', limit })`,
+  },
+})
+
+// Try unsaved code (editors, coding agents)
+const trial = await tf.functions.test({ sourceCode: fn.sourceCode, input: { limit: 3 }, databases: ['shop'] })
+
+// Run with your API key (resolves { success: false, errorCode } on failure)
+const run = await tf.functions.run(fn.id, { limit: 5 })
+
+// From your app's backend: the public endpoint and the fnk_ key
+const { apiKey } = await tf.functions.rotateKey(fn.id) // shown once; store as a secret
+const { output, runId } = await tf.functions.invoke(fn.id, { limit: 5 }, { key: apiKey })
+
+const runs = await tf.functions.listRuns(fn.id, { limit: 20 })
 ```
 
-### Crews + kanban boards
+### Databases — connect once, query with FQL or SQL
 
 ```ts
-const crew = (await tf.crews.list())[0]
-const projects = await tf.crews.listProjects(crew.id)
-const board = await tf.crews.getBoard(crew.id, projects[0].id)
-const cost  = await tf.crews.getCostSummary(crew.id, projects[0].id)
+const db = await tf.databases.create({
+  name: 'shop',                                   // ctx.db.shop in Functions
+  connectionString: process.env.SHOP_DATABASE_URL, // tested before saving, encrypted, never returned
+  access: 'READ_ONLY',
+  mcpEnabled: true,                               // db_query for agents (always read-only)
+})
+const { tables } = await tf.databases.schema(db.id)
+const { rows } = await tf.databases.find(db.id, { find: 'orders', where: { total: { gte: 100 } }, orderBy: '-created_at', limit: 20 })
+const count = await tf.databases.sql(db.id, 'select count(*) from orders where status = $1', ['paid'])
 ```
 
-### Org Chart — positions, goals, agents
+### MCP server — your tools for AI agents
+
+One endpoint exposes the project's Functions (`fn_*`), database tools
+(`db_list`, `db_schema`, `db_query`), customer intelligence (`tf_*`) and flows.
 
 ```ts
-const positions = await tf.orgChart.positions.list()
-const pos = await tf.orgChart.positions.get(positions[0].id)         // resolved from list
-const reports = await tf.orgChart.positions.listReports(pos.id)
-const deliverables = await tf.orgChart.positions.listDeliverables(pos.id)
+console.log(await tf.mcp.claudeCodeCommand())        // claude mcp add ... (contains the token)
+const { url, token } = await tf.mcp.getConnectionInfo() // Cursor, Codex, any MCP client
 
-const goals = await tf.orgChart.goals.list({ status: 'active' })
-const goal = await tf.orgChart.goals.get(goals[0].id)                // resolved from list
-const activity = await tf.orgChart.goals.getActivity(goal.id)
-await tf.orgChart.goals.decompose(goal.id)                           // AI subdivides into sub-goals
+const tools = await tf.mcp.listTools()
+const result = await tf.mcp.callTool('db_query', { database: 'shop', query: { find: 'orders', limit: 5 } })
 
-const cost = await tf.orgChart.getCostSummary()
+await tf.mcp.update({ disabledTools: ['ap_delete_flow'] })
+const audit = await tf.mcp.toolCalls.list({ statuses: ['FAILED', 'DENIED'], limit: 50 })
 ```
 
-### Message Templates (with RCS / MMS support)
+### Customer intelligence — events in, predictions and engagement out
 
-Reusable, memory-aware message templates. Placeholders render from a
-contact's `ContactProfile` plus extras you pass in.
+Send events from any system (POS, CRM, support, your app). Lattice learns each
+customer's patterns and emits a `pattern_break` event when an expected behavior
+doesn't happen; engagement rules act on it.
 
-```typescript
-// List / get / create
-const templates = await client.templates.list()
-const tpl = await client.templates.get('tpl-id')
+```ts
+const { contact } = await tf.contacts.lookup({ email: 'sam@example.com', autoCreate: true, chatbotId })
+await tf.contacts.logEvent({ contactId: contact!.id, eventType: 'purchase', title: 'Trail runner', eventData: { sku: 'SS-101', total: 129 } })
 
-const newTpl = await client.templates.create({
-  name: 'Win-back Offer',
-  body: "Hey {contact.name}, it's been {pattern.daysSinceLastOrder} days — use {promotion.code}!",
-  channel: 'sms',
+await tf.lattice.extractPatterns({ contactId: contact!.id })
+const ctx = await tf.lattice.getContext(contact!.id)   // patterns, recent events, facts — for AI messages
+
+await tf.engagement.rules.create({
+  chatbotId,
+  name: 'Missed weekly visit',
+  triggerConfig: { type: 'event', eventType: 'pattern_break' },
+  contactFilter: { segments: ['loyal', 'at-risk'] },
+  actionConfig: { actionType: 'dispatch_flow_event', channel: 'sms', linkedFlowId, promptTemplate: 'Friendly check-in about their usual order.' },
+  enabled: true,
 })
-
-// Server-side render (uses the real contact profile)
-const rendered = await client.templates.render('tpl-id', {
-  contactId: 'con_123',
-  extras: { promotion: { code: 'PIZZA20', discountValue: 20 } },
-})
-// → { subject, body, mediaUrls, rcsPayload, unresolvedPlaceholders, policyWarnings, ... }
-
-// Client-side render (no round trip — for live previews, mail-merge batches)
-import { renderLocal } from '@thinkfleet/sdk'
-
-const profile = await client.contacts.getProfile('con_123')
-const out = client.templates.renderLocal(tpl, {
-  profile,
-  extras: { promotion: { code: 'PIZZA20', discountValue: 20 } },
-})
-// → { subject, body, unresolvedPlaceholders }
-
-// Or with a raw input (no template required)
-const ad = renderLocal({
-  subject: 'Hey {contact.name}!',
-  body: '{pattern.topItem} this Friday?',
-  context: { profile },
-})
-
-// Channel policies (for building your own char counters)
-const policies = await client.templates.channelPolicies()
+await tf.engagement.rules.recordOutcome(ruleId, { contactId: contact!.id, outcome: 'converted' })
 ```
 
-**Placeholder resolution order** (same in server and `renderLocal`):
-`extras.*` → `contact.*` → `preferences.*` → `facts[N]` → `patterns.*`
-→ `recentEvents[N]` → `media.N`. Aliases: `{memory.topFact}`,
-`{memory.topPreference}`, `{pattern.topItem}`.
+> Contacts and engagement rules currently belong to an agent (`chatbotId`).
 
-### Media Library
+### Secret Managers — BYO external vault
 
-Upload images / video / audio / PDFs. Used by RCS cards, MMS attachments,
-and `{media.N}` placeholders in templates. Signed URLs default to 7-day
-TTL; auto alt-text is generated via Claude Vision on image and video
-uploads.
+Store connection secrets in your own vault (HashiCorp Vault, AWS Secrets
+Manager, CyberArk Conjur, 1Password). Secrets are resolved from your vault at
+flow run time and never stored in ThinkFleet's database. Requires a
+**platform-admin** API key.
 
-```typescript
-import { readFileSync } from 'node:fs'
+```ts
+import { SecretManagerProvider, SecretManagerScope, buildSecretReference } from '@thinkfleet/sdk'
 
-// Upload (Buffer or Blob)
-const asset = await client.media.upload({
-  file: readFileSync('pepperoni.jpg'),
-  mimeType: 'image/jpeg',
-  filename: 'pepperoni.jpg',
-})
-// → { id, url, altText, tags, type, width, height, ... }
-
-// List / filter
-const { data } = await client.media.list({ type: 'image', limit: 50 })
-
-// Update alt text / tags
-await client.media.update(asset.id, {
-  altText: 'A classic pepperoni pizza',
-  tags: ['food', 'pepperoni', 'bestseller'],
+// 1. Connect a vault (credentials are live-tested before saving)
+const mgr = await tf.secretManagers.connect({
+  name: 'Production Vault',
+  providerId: SecretManagerProvider.HASHICORP,
+  scope: SecretManagerScope.PLATFORM,
+  config: { url: 'https://vault.example.com', roleId: '...', secretId: '...' },
 })
 
-// Delete
-await client.media.delete(asset.id)
+// 2. Reference a secret from a connection value
+const ref = buildSecretReference(mgr.id, 'secret/data/db:password')
+await tf.connections.connect({
+  pieceName: 'postgres',
+  displayName: 'Prod DB',
+  value: { type: 'SECRET_TEXT', secretText: ref },
+})
+
+// List status / update / delete
+const { data } = await tf.secretManagers.list()   // each row: { ..., status: { configured, connected } }
+await tf.secretManagers.delete(mgr.id)
 ```
 
 ### Locations
@@ -389,14 +328,6 @@ const loc = await tf.locations.get(flat[0].id)
 const members = await tf.locations.listMembers(loc.id)
 ```
 
-### Voice
-
-```ts
-const voices = tf.voice.listVoices()                          // sync — built-in catalog
-const eleven = tf.voice.listVoicesByProvider('elevenlabs')
-const audio  = await tf.voice.preview({ provider: 'elevenlabs', voiceId, text: 'Hello' }) // ArrayBuffer (audio/mpeg)
-```
-
 ### Guardrails
 
 ```ts
@@ -406,40 +337,16 @@ const scan = await tf.guardrails.testScan({ text: 'My SSN is 123-45-6789.' })
 // → { matches: [{ patternId, matchedText, severity, ... }], ... }
 ```
 
-### Shield (when platform plan has `shieldEnabled`)
+### Event destinations — webhooks for platform events
 
 ```ts
-const overview = await tf.shield.overview()
-const events   = await tf.shield.listEvents({ limit: 50 })
-const cost     = await tf.shield.costAnalytics({ startDate, endDate })
-const breakdown = await tf.shield.developerBreakdown()
+import { ApplicationEventName } from '@thinkfleet/sdk'
+
+await tf.eventDestinations.create({
+  url: 'https://my-app.example.com/hooks/thinkfleet',
+  events: [ApplicationEventName.FLOW_RUN_FINISHED],
+})
 ```
-
-### Lattice — behavioral pattern intelligence
-
-```ts
-// Bulk extract patterns across the project
-const { patternsCreated, patternsRefreshed } = await tf.lattice.extractPatterns({ windowDays: 90 })
-
-// List contacts that have at least one active pattern
-const { contacts } = await tf.lattice.listContacts({ activeOnly: true })
-
-// Drill into one contact's patterns + full retrieval bundle
-const patterns = await tf.lattice.listPatterns(contactId)
-const ctx      = await tf.lattice.getContext(contactId, { eventLimit: 15, memoryLimit: 10 })
-
-// Manually run the monitor tick (cron does this every 15 min)
-const tick = await tf.lattice.runMonitorTick()
-console.log(`${tick.breaksEmitted} pattern_break events emitted`)
-
-// Cross-entity search across contacts, events, and patterns
-const hits = await tf.lattice.search({ q: 'pizza', types: ['contact', 'pattern'] })
-```
-
-When a pattern goes overdue past its tolerance window, the engine emits a
-`pattern_break` contact event — subscribe to it via the
-`customer-engagement` piece's `pattern-break` trigger (in flows) or via
-`tf.eventDestinations` (as a webhook).
 
 ---
 
@@ -460,7 +367,7 @@ import {
 } from '@thinkfleet/sdk'
 
 try {
-  await tf.agents.chat(id, { sessionId, message })
+  await tf.flows.run(flowId, { input })
 } catch (err) {
   if (err instanceof RateLimitError)   { /* respect err.retryAfterMs */ }
   else if (err instanceof TimeoutError) { /* extend timeout */ }

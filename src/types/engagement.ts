@@ -115,3 +115,113 @@ export interface UpdateEngagementSettingsRequest {
   failOpenOnPromoError?: boolean
   failOpenOnDeliveryError?: boolean
 }
+
+// ─── Engagement rules ─────────────────────────────────────────────
+
+export type EngagementTriggerConfig =
+  | { type: 'schedule'; cronExpression: string; timezone?: string }
+  /** Fires when a contact event of this type is logged (e.g. `pattern_break` from Lattice). */
+  | { type: 'event'; eventType: string }
+  /** Fires for contacts with no `eventType` event in `absenceDays`, checked on `checkCronExpression`. */
+  | { type: 'absence'; eventType: string; absenceDays: number; checkCronExpression: string; timezone?: string }
+
+export type EngagementContactSegment = 'new' | 'loyal' | 'at-risk' | 'lapsed'
+
+export interface EngagementContactFilter {
+  tags?: string[]
+  segments?: EngagementContactSegment[]
+  minLifetimeValue?: number
+  maxLifetimeValue?: number
+  lastInteractionBeforeDays?: number
+  eventConditions?: Array<Record<string, unknown>>
+  eventAbsence?: Array<{ eventType: string; withinDays: number }>
+}
+
+export type EngagementActionType = 'generate_offer' | 'send_reminder' | 're_engage' | 'custom' | 'dispatch_flow_event'
+export type EngagementChannel = 'sms' | 'email' | 'whatsapp' | 'webchat'
+
+export interface EngagementActionConfig {
+  actionType: EngagementActionType
+  channel: EngagementChannel
+  /** AI prompt for the message; rendered with the contact's profile and Lattice context. */
+  promptTemplate: string
+  messageTemplateId?: string
+  webhookUrl?: string
+  /** Flow that receives the event for `dispatch_flow_event` — send through any system. */
+  linkedFlowId?: string
+  webhookAuthToken?: string
+  promoProviderFlowId?: string
+  deliveryFlowId?: string
+  vendorRegisterFlowId?: string
+  promoProviderTimeoutMs?: number
+  deliveryTimeoutMs?: number
+  vendorRegisterTimeoutMs?: number
+  failOpenOnPromoError?: boolean
+  failOpenOnDeliveryError?: boolean
+  failOpenOnVendorRegisterError?: boolean
+}
+
+export type EngagementTriggerMode = 'manual' | 'cron' | 'ai-heartbeat'
+
+export interface EngagementRule {
+  id: string
+  created: string
+  updated: string
+  projectId: string
+  chatbotId: string
+  name: string
+  description: string | null
+  triggerConfig: EngagementTriggerConfig
+  contactFilter: EngagementContactFilter
+  actionConfig: EngagementActionConfig
+  triggerMode: EngagementTriggerMode
+  enabled: boolean
+  lastRunAt: string | null
+  nextRunAt: string | null
+  executionCount: number
+  createdById: string | null
+}
+
+export interface CreateEngagementRuleRequest {
+  /** Contacts are currently owned by an agent; rules target that agent's contacts. */
+  chatbotId: string
+  name: string
+  description?: string
+  triggerConfig: EngagementTriggerConfig
+  contactFilter: EngagementContactFilter
+  actionConfig: EngagementActionConfig
+  triggerMode?: EngagementTriggerMode
+  enabled?: boolean
+}
+
+export type UpdateEngagementRuleRequest = Partial<Omit<CreateEngagementRuleRequest, 'chatbotId' | 'description'>> & {
+  description?: string | null
+}
+
+export type EngagementExecutionStatus = 'running' | 'completed' | 'failed' | 'partial' | 'cancelled'
+
+export interface EngagementExecution {
+  id: string
+  created: string
+  updated: string
+  engagementRuleId: string
+  projectId: string
+  status: EngagementExecutionStatus
+  contactsTargeted: number
+  contactsReached: number
+  contactsConverted: number
+  errorMessage: string | null
+  startedAt: string
+  completedAt: string | null
+  executionDetails: unknown | null
+}
+
+export type EngagementOutcome = 'sent' | 'delivered' | 'replied' | 'converted' | 'ignored' | 'failed'
+
+/** Report what happened after a message went out, from whichever system saw it (POS, CRM, ESP). */
+export interface RecordEngagementOutcomeRequest {
+  executionId?: string
+  contactId?: string
+  outcome: EngagementOutcome
+  metadata?: unknown
+}

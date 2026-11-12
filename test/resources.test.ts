@@ -5,6 +5,7 @@ import {
   denormalizeLegacyPiecePrefix,
   rewriteLegacyPiecePrefixDeep,
 } from '../src/core/piece-name'
+import { SecretManagerProvider, SecretManagerScope, buildSecretReference } from '../src/types/secret-managers'
 
 // Mock fetch that captures requests for verification
 function createCapturingFetch() {
@@ -21,6 +22,28 @@ function createCapturingFetch() {
     }
   })
   return { mockFetch, calls }
+}
+
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}) {
+  const text = JSON.stringify(body)
+  return {
+    ok: status < 400, status,
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(text),
+    headers: { get: (k: string) => ({ 'content-type': 'application/json', ...headers } as Record<string, string>)[k.toLowerCase()] ?? null },
+    body: null,
+  }
+}
+
+function sseResponse(message: unknown) {
+  const text = `event: message\ndata: ${JSON.stringify(message)}\n\n`
+  return {
+    ok: true, status: 200,
+    json: () => Promise.reject(new Error('not json')),
+    text: () => Promise.resolve(text),
+    headers: { get: (k: string) => (k.toLowerCase() === 'content-type' ? 'text/event-stream' : null) },
+    body: null,
+  }
 }
 
 function createClient(mockFetch: any) {
@@ -41,54 +64,33 @@ describe('ThinkFleet Client', () => {
     expect(() => new ThinkFleet({ apiKey: 'key', projectId: '' })).toThrow('projectId is required')
   })
 
-  it('has all 14 resource modules', () => {
+  it('exposes the MCP + Flows + Connect resource modules', () => {
     const { mockFetch } = createCapturingFetch()
     const tf = createClient(mockFetch)
-    expect(tf.agents).toBeDefined()
-    expect(tf.tasks).toBeDefined()
     expect(tf.knowledgeBases).toBeDefined()
     expect(tf.mcp).toBeDefined()
-    expect(tf.crews).toBeDefined()
     expect(tf.connections).toBeDefined()
-    expect(tf.voice).toBeDefined()
-    expect(tf.memory).toBeDefined()
     expect(tf.flows).toBeDefined()
+    expect(tf.flowRuns).toBeDefined()
+    expect(tf.locations).toBeDefined()
     expect(tf.projects).toBeDefined()
     expect(tf.guardrails).toBeDefined()
-    expect(tf.shield).toBeDefined()
     expect(tf.oauth).toBeDefined()
-    expect(tf.orgChart).toBeDefined()
-  })
-})
-
-describe('AgentsResource', () => {
-  it('lists agents with type=AGENT filter', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.agents.list()
-    expect(calls[0].url).toContain('/chatbots?type=AGENT')
+    expect(tf.eventDestinations).toBeDefined()
+    expect(tf.secretManagers).toBeDefined()
+    expect(tf.functions).toBeDefined()
+    expect(tf.databases).toBeDefined()
+    expect(tf.contacts).toBeDefined()
+    expect(tf.lattice).toBeDefined()
+    expect(tf.engagement).toBeDefined()
   })
 
-  it('gets a specific agent', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.agents.get('agent-123')
-    expect(calls[0].url).toContain('/chatbots/agent-123')
-  })
-
-  it('creates agent with type=AGENT injected', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.agents.create({ systemPrompt: 'test' } as any)
-    const body = JSON.parse(calls[0].init.body as string)
-    expect(body.type).toBe('AGENT')
-  })
-
-  it('chats with 120s timeout', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.agents.chat('agent-123', { message: 'hello' } as any)
-    expect(calls[0].url).toContain('/agent-chat')
+  it('no longer exposes removed resources', () => {
+    const { mockFetch } = createCapturingFetch()
+    const tf = createClient(mockFetch) as any
+    for (const name of ['agents', 'crews', 'tasks', 'memory', 'orgChart', 'voice', 'media', 'messageTemplates', 'shield']) {
+      expect(tf[name]).toBeUndefined()
+    }
   })
 })
 
@@ -108,13 +110,6 @@ describe('GuardrailsResource', () => {
     expect(calls[0].init.method).toBe('PATCH')
   })
 
-  it('gets pattern catalog', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.guardrails.getPatternCatalog()
-    expect(calls[0].url).toContain('/guardrails/patterns')
-  })
-
   it('test scans text', async () => {
     const { mockFetch, calls } = createCapturingFetch()
     const tf = createClient(mockFetch)
@@ -122,32 +117,6 @@ describe('GuardrailsResource', () => {
     expect(calls[0].init.method).toBe('POST')
     const body = JSON.parse(calls[0].init.body as string)
     expect(body.text).toContain('123-45-6789')
-  })
-})
-
-describe('ShieldResource', () => {
-  it('gets overview with rawPath', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.shield.overview()
-    expect(calls[0].url).toContain('/shield/overview')
-    expect(calls[0].url).not.toContain('/projects/')
-  })
-
-  it('lists events', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.shield.listEvents({ limit: 10, blocked: true })
-    expect(calls[0].url).toContain('/shield/events')
-    expect(calls[0].url).toContain('limit=10')
-    expect(calls[0].url).toContain('blocked=true')
-  })
-
-  it('gets cost analytics', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.shield.costAnalytics()
-    expect(calls[0].url).toContain('/shield/cost-analytics')
   })
 })
 
@@ -171,106 +140,35 @@ describe('OAuthResource', () => {
     const body = JSON.parse(calls[0].init.body as string)
     expect(body.providerSlug).toBe('google')
   })
-
-  it('lists available integration configs', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.oauth.configs.listAvailable()
-    expect(calls[0].url).toContain('/integration-configs/available')
-  })
-
-  it('sends proxy request', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.oauth.proxy('gmail/v1/messages', { q: 'test' }, 'conn-123')
-    expect(calls[0].url).toContain('/proxy/gmail/v1/messages')
-    const body = JSON.parse(calls[0].init.body as string)
-    expect(body.connectionId).toBe('conn-123')
-  })
 })
 
-describe('OrgChartResource', () => {
-  it('lists positions', async () => {
+describe('SecretManagersResource', () => {
+  it('lists secret managers with rawPath', async () => {
     const { mockFetch, calls } = createCapturingFetch()
     const tf = createClient(mockFetch)
-    await tf.orgChart.positions.list()
-    expect(calls[0].url).toContain('/org-chart/positions')
+    await tf.secretManagers.list()
+    expect(calls[0].url).toContain('/secret-managers')
+    expect(calls[0].url).not.toContain('/projects/')
   })
 
-  it('creates position with runtime config', async () => {
+  it('connects a HashiCorp vault', async () => {
     const { mockFetch, calls } = createCapturingFetch()
     const tf = createClient(mockFetch)
-    await tf.orgChart.positions.create({
-      title: 'QA Lead',
-      role: 'Testing',
-      runtimeConfig: { runtimeType: 'MCP' as any, mcpServerUrl: 'https://codex.openai.com/mcp' },
+    await tf.secretManagers.connect({
+      name: 'Prod Vault',
+      providerId: SecretManagerProvider.HASHICORP,
+      scope: SecretManagerScope.PLATFORM,
+      config: { url: 'https://vault.example.com', roleId: 'r', secretId: 's' },
     })
+    expect(calls[0].init.method).toBe('POST')
     const body = JSON.parse(calls[0].init.body as string)
-    expect(body.runtimeConfig.runtimeType).toBe('MCP')
+    expect(body.providerId).toBe('hashicorp')
   })
 
-  it('creates a goal', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.orgChart.goals.create({ positionId: 'pos-1', title: 'Ship v2.0' })
-    expect(calls[0].url).toContain('/org-chart/goals')
-  })
-
-  it('decomposes a goal with extended timeout', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.orgChart.goals.decompose('goal-1')
-    expect(calls[0].url).toContain('/org-chart/goals/goal-1/decompose')
-  })
-
-  it('registers a connected agent', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.orgChart.connectedAgents.register({
-      name: 'Claude Code',
-      connectionType: 'MCP',
-      capabilities: ['code_execution', 'file_read'],
-    })
-    const body = JSON.parse(calls[0].init.body as string)
-    expect(body.name).toBe('Claude Code')
-  })
-
-  it('gets cost summary', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.orgChart.getCostSummary()
-    expect(calls[0].url).toContain('/org-chart/budget/summary')
-  })
-})
-
-describe('MemoryResource', () => {
-  it('lists agent memory', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.memory.list('agent-1')
-    expect(calls[0].url).toContain('/chatbots/agent-1/memory')
-  })
-
-  it('creates memory with scope', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.memory.create('agent-1', { content: 'User likes dark mode', type: 'preference' as any, scope: 'user' as any })
-    const body = JSON.parse(calls[0].init.body as string)
-    expect(body.scope).toBe('user')
-  })
-
-  it('searches memory semantically', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.memory.search('agent-1', { query: 'dark mode' } as any)
-    expect(calls[0].url).toContain('/memory/search')
-  })
-
-  it('gets admin stats', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.memory.admin.stats()
-    expect(calls[0].url).toContain('/admin/memory/stats')
+  it('builds a secret reference string', () => {
+    expect(buildSecretReference('conn-1', 'secret/data/db:password')).toBe(
+      '{{conn-1|ap_sep_v1|secret/data/db:password}}',
+    )
   })
 })
 
@@ -282,50 +180,137 @@ describe('McpResource', () => {
     expect(calls[0].url).toContain('/mcp-server')
   })
 
-  it('rotates token', async () => {
+  it('updates disabled tools, rotates, lists tool calls', async () => {
     const { mockFetch, calls } = createCapturingFetch()
     const tf = createClient(mockFetch)
+    await tf.mcp.update({ disabledTools: ['ap_list_flows'] })
     await tf.mcp.rotateToken()
-    expect(calls[0].url).toContain('/mcp-server/rotate')
-    expect(calls[0].init.method).toBe('POST')
+    await tf.mcp.toolCalls.list({ toolName: 'db_query', statuses: ['FAILED', 'DENIED'], limit: 10 })
+    expect(calls[0].url).toBe('https://api.test.com/api/v1/projects/proj-abc/mcp-server')
+    expect(JSON.parse(calls[0].init.body as string)).toEqual({ disabledTools: ['ap_list_flows'] })
+    expect(calls[1].url).toContain('/mcp-server/rotate')
+    expect(calls[2].url).toBe('https://api.test.com/api/v1/projects/proj-abc/mcp-server/tool-calls?toolName=db_query&statuses=FAILED&statuses=DENIED&limit=10')
   })
 
-  it('gets skills manifest', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.mcp.skills()
-    expect(calls[0].url).toContain('/mcp-server/skills.json')
+  it('lists tools over JSON-RPC with the MCP token, not the API key', async () => {
+    const seen: Array<{ url: string; init: RequestInit }> = []
+    const fetch = vi.fn(async (url: string, init: RequestInit) => {
+      seen.push({ url, init })
+      if (url.endsWith('/mcp-server')) return jsonResponse({ token: 'mcp-tok', disabledTools: null, flows: [] })
+      const { id } = JSON.parse(init.body as string)
+      return sseResponse({ jsonrpc: '2.0', id, result: { tools: [{ name: 'fn_top_customers_ab12', inputSchema: {} }] } })
+    })
+    const tf = createClient(fetch)
+    const tools = await tf.mcp.listTools()
+    expect(tools.map(t => t.name)).toEqual(['fn_top_customers_ab12'])
+    const rpc = seen[1]
+    expect(rpc.url).toBe('https://api.test.com/api/v1/projects/proj-abc/mcp-server/http')
+    expect((rpc.init.headers as Record<string, string>).Authorization).toBe('Bearer mcp-tok')
+    expect(JSON.parse(rpc.init.body as string).method).toBe('tools/list')
   })
 
-  it('adds an integration (piece tool)', async () => {
-    const { mockFetch, calls } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    await tf.mcp.integrations.add({ pieceName: 'gmail', actionName: 'send_email' } as any)
-    expect(calls[0].url).toContain('/mcp-server/piece-tools')
-    const body = JSON.parse(calls[0].init.body as string)
-    expect(body.pieceName).toBe('@thinkfleet/piece-gmail')
+  it('calls a tool and surfaces JSON-RPC errors', async () => {
+    const fetch = vi.fn(async (_url: string, init: RequestInit) => {
+      const { id, params } = JSON.parse(init.body as string)
+      if (params.name === 'missing') return jsonResponse({ jsonrpc: '2.0', id, error: { code: -32602, message: 'Tool missing not found' } })
+      return jsonResponse({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: '[]' }] } })
+    })
+    const tf = createClient(fetch)
+    const ok = await tf.mcp.callTool('db_list', {}, { token: 't' })
+    expect(ok.content[0].text).toBe('[]')
+    await expect(tf.mcp.callTool('missing', {}, { token: 't' })).rejects.toMatchObject({ code: 'MCP_ERROR' })
   })
 })
 
-describe('CrewsResource (thread-safe)', () => {
-  it('columns.list takes crewId as parameter', async () => {
+describe('FunctionsResource', () => {
+  it('maps CRUD, run, test, runs and rotate-key to project routes', async () => {
     const { mockFetch, calls } = createCapturingFetch()
     const tf = createClient(mockFetch)
-    await tf.crews.columns.list('crew-1', 'proj-1')
-    expect(calls[0].url).toContain('/crews/crew-1/projects/proj-1/columns')
+    await tf.functions.create({ name: 'f', sourceCode: { code: 'export default () => 1', packageJson: '{}' } })
+    await tf.functions.update('fn1', { mcpEnabled: true })
+    await tf.functions.run('fn1', { limit: 5 })
+    await tf.functions.test({ sourceCode: { code: 'x', packageJson: '{}' }, input: {} })
+    await tf.functions.listRuns('fn1', { limit: 3 })
+    await tf.functions.rotateKey('fn1')
+    const base = 'https://api.test.com/api/v1/projects/proj-abc/functions'
+    expect(calls.map(c => `${c.init.method} ${c.url}`)).toEqual([
+      `POST ${base}`,
+      `POST ${base}/fn1`,
+      `POST ${base}/fn1/run`,
+      `POST ${base}/test`,
+      `GET ${base}/fn1/runs?limit=3`,
+      `POST ${base}/fn1/rotate-key`,
+    ])
+    expect(JSON.parse(calls[2].init.body as string)).toEqual({ input: { limit: 5 } })
   })
 
-  it('tasks.list takes crewId as parameter', async () => {
+  it('invokes the public endpoint with the function key and reads run headers', async () => {
+    const seen: Array<{ url: string; init: RequestInit }> = []
+    const fetch = vi.fn(async (url: string, init: RequestInit) => {
+      seen.push({ url, init })
+      return jsonResponse([{ id: 1 }], 200, { 'x-flobyte-run-id': 'run1', 'x-flobyte-duration-ms': '42' })
+    })
+    const tf = createClient(fetch)
+    const res = await tf.functions.invoke('fn1', { limit: 1 }, { key: 'fnk_abc' })
+    expect(seen[0].url).toBe('https://api.test.com/api/v1/fn/fn1')
+    expect((seen[0].init.headers as Record<string, string>).Authorization).toBe('Bearer fnk_abc')
+    expect(res).toEqual({ output: [{ id: 1 }], runId: 'run1', durationMs: 42 })
+  })
+
+  it('throws the function error code from the public endpoint', async () => {
+    const fetch = vi.fn(async () => jsonResponse({ error: { code: 'INVALID_INPUT', message: 'Input "limit" must be of type Number' } }, 400))
+    const tf = createClient(fetch)
+    await expect(tf.functions.invoke('fn1', {}, { key: 'fnk_abc' })).rejects.toMatchObject({ code: 'INVALID_INPUT', statusCode: 400 })
+    await expect(tf.functions.invoke('fn1', {}, { key: '' })).rejects.toThrow('function key')
+  })
+})
+
+describe('DatabasesResource', () => {
+  it('maps CRUD, test, schema and queries', async () => {
     const { mockFetch, calls } = createCapturingFetch()
     const tf = createClient(mockFetch)
-    await tf.crews.tasks.list('crew-1', 'proj-1')
-    expect(calls[0].url).toContain('/crews/crew-1/projects/proj-1/tasks')
+    await tf.databases.create({ name: 'shop', connectionString: 'postgres://u:p@h/db' })
+    await tf.databases.test('db1')
+    await tf.databases.schema('db1')
+    await tf.databases.find('db1', { find: 'orders', where: { total: { gte: 100 } }, limit: 5 })
+    await tf.databases.sql('db1', 'select 1 where $1', [true])
+    const base = 'https://api.test.com/api/v1/projects/proj-abc/function-databases'
+    expect(calls.map(c => `${c.init.method} ${c.url}`)).toEqual([
+      `POST ${base}`, `POST ${base}/db1/test`, `GET ${base}/db1/schema`, `POST ${base}/db1/query`, `POST ${base}/db1/query`,
+    ])
+    expect(JSON.parse(calls[3].init.body as string)).toEqual({ query: { find: 'orders', where: { total: { gte: 100 } }, limit: 5 } })
+    expect(JSON.parse(calls[4].init.body as string)).toEqual({ sql: 'select 1 where $1', params: [true] })
+  })
+})
+
+describe('customer intelligence resources', () => {
+  it('maps contacts, lattice and engagement rules to live routes', async () => {
+    const { mockFetch, calls } = createCapturingFetch()
+    const tf = createClient(mockFetch)
+    await tf.contacts.listAll()
+    await tf.contacts.deleteEvent('ev1')
+    await tf.lattice.getContext('c1')
+    await tf.engagement.rules.list()
+    await tf.engagement.rules.run('r1')
+    await tf.engagement.rules.recordOutcome('r1', { outcome: 'converted', contactId: 'c1' })
+    await tf.engagement.rules.cancelExecution('x1')
+    const base = 'https://api.test.com/api/v1/projects/proj-abc'
+    const got = calls.map(c => `${c.init.method} ${c.url.split('?')[0]}`)
+    expect(got).toEqual([
+      `GET ${base}/contacts`,
+      `DELETE ${base}/contact-events/ev1`,
+      `GET ${base}/lattice/contacts/c1/context`,
+      `GET ${base}/engagement-rules`,
+      `POST ${base}/engagement-rules/r1/run`,
+      `POST ${base}/engagement-rules/r1/outcomes`,
+      `POST ${base}/engagement-rules/executions/x1/cancel`,
+    ])
   })
 
-  it('no forCrew method exists', () => {
-    const { mockFetch } = createCapturingFetch()
-    const tf = createClient(mockFetch)
-    expect((tf.crews as any).forCrew).toBeUndefined()
+  it('drops lattice methods whose routes no longer exist', () => {
+    const tf = createClient(vi.fn()) as any
+    expect(tf.lattice.observe).toBeUndefined()
+    expect(tf.lattice.runDemoSeed).toBeUndefined()
   })
 })
 
@@ -339,21 +324,17 @@ describe('KnowledgeBasesResource', () => {
 })
 
 describe('ConnectionsResource', () => {
-  it('checks if Composio is configured', async () => {
+  it('lists connections', async () => {
     const { mockFetch, calls } = createCapturingFetch()
     const tf = createClient(mockFetch)
-    await tf.connections.isConfigured()
-    expect(calls[0].url).toContain('/composio/configured')
+    await tf.connections.list()
+    expect(calls[0].url).toContain('/app-connections')
   })
 })
 
 describe('piece-name normalization', () => {
   it('expands short names to @thinkfleet/piece-*', () => {
     expect(normalizePieceName('gmail')).toBe('@thinkfleet/piece-gmail')
-  })
-
-  it('expands piece-* shorthand to @thinkfleet/piece-*', () => {
-    expect(normalizePieceName('piece-gmail')).toBe('@thinkfleet/piece-gmail')
   })
 
   it('passes canonical @thinkfleet/piece-* through unchanged', () => {
@@ -371,20 +352,13 @@ describe('piece-name normalization', () => {
   it('rewriteLegacyPiecePrefixDeep walks nested objects and arrays', () => {
     const input = {
       pieceName: '@activepieces/piece-gmail',
-      steps: [
-        { settings: { pieceName: '@activepieces/piece-stripe' } },
-      ],
+      steps: [{ settings: { pieceName: '@activepieces/piece-stripe' } }],
       other: 'unrelated',
     }
     const out = rewriteLegacyPiecePrefixDeep(input) as typeof input
     expect(out.pieceName).toBe('@thinkfleet/piece-gmail')
     expect(out.steps[0].settings.pieceName).toBe('@thinkfleet/piece-stripe')
     expect(out.other).toBe('unrelated')
-  })
-
-  it('rewriteLegacyPiecePrefixDeep returns the same reference when nothing changed', () => {
-    const input = { foo: 'bar', n: 42, nested: { ok: true } }
-    expect(rewriteLegacyPiecePrefixDeep(input)).toBe(input)
   })
 
   it('http response is auto-rewritten to canonical prefix', async () => {

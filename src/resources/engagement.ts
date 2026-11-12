@@ -9,10 +9,16 @@ import type {
   ListEngagementDispatchLogRequest,
   MarkPromotionRedeemedRequest,
   UpdateEngagementSettingsRequest,
+  CreateEngagementRuleRequest,
+  EngagementExecution,
+  EngagementRule,
+  RecordEngagementOutcomeRequest,
+  UpdateEngagementRuleRequest,
 } from '../types/engagement.js'
 
 /**
  * Engagement orchestration resources:
+ *  - rules: who to reach, when, and what to send (event, schedule or absence triggers)
  *  - promotions: track sent codes + redemptions
  *  - dispatchLog: audit history of every rule firing
  *  - settings: project-level promo provider + delivery flow defaults
@@ -23,11 +29,13 @@ import type {
  *   tf.engagement.settings.get()
  */
 export class EngagementResource {
+  readonly rules: EngagementRulesResource
   readonly promotions: PromotionsResource
   readonly dispatchLog: DispatchLogResource
   readonly settings: EngagementSettingsResource
 
   constructor(http: HttpClient) {
+    this.rules = new EngagementRulesResource(http)
     this.promotions = new PromotionsResource(http)
     this.dispatchLog = new DispatchLogResource(http)
     this.settings = new EngagementSettingsResource(http)
@@ -149,5 +157,60 @@ export class EngagementSettingsResource {
     options?: RequestOptions,
   ): Promise<ClawdbotEngagementSettings> {
     return this.http.patch<ClawdbotEngagementSettings>(`/engagement-settings`, body, options)
+  }
+}
+
+/**
+ * Engagement rules.
+ *
+ * @example
+ * ```ts
+ * // Win back a regular whose weekly visit didn't happen (Lattice emits pattern_break)
+ * await tf.engagement.rules.create({
+ *   chatbotId,
+ *   name: 'Missed weekly visit',
+ *   triggerConfig: { type: 'event', eventType: 'pattern_break' },
+ *   contactFilter: { segments: ['loyal', 'at-risk'] },
+ *   actionConfig: { actionType: 'dispatch_flow_event', channel: 'sms', linkedFlowId, promptTemplate: 'Friendly check-in, mention their usual order.' },
+ *   triggerMode: 'cron',
+ *   enabled: true,
+ * })
+ * ```
+ */
+export class EngagementRulesResource {
+  constructor(private readonly http: HttpClient) {}
+
+  async list(options?: RequestOptions): Promise<EngagementRule[]> {
+    return this.http.get<EngagementRule[]>('/engagement-rules', undefined, options)
+  }
+
+  async create(body: CreateEngagementRuleRequest, options?: RequestOptions): Promise<EngagementRule> {
+    return this.http.post<EngagementRule>('/engagement-rules', body, options)
+  }
+
+  async update(ruleId: string, body: UpdateEngagementRuleRequest, options?: RequestOptions): Promise<EngagementRule> {
+    return this.http.patch<EngagementRule>(`/engagement-rules/${ruleId}`, body, options)
+  }
+
+  async delete(ruleId: string, options?: RequestOptions): Promise<void> {
+    await this.http.delete<void>(`/engagement-rules/${ruleId}`, options)
+  }
+
+  /** Run the rule now, regardless of its trigger. */
+  async run(ruleId: string, options?: RequestOptions): Promise<EngagementExecution> {
+    return this.http.post<EngagementExecution>(`/engagement-rules/${ruleId}/run`, {}, options)
+  }
+
+  async listExecutions(ruleId: string, params?: { limit?: number; offset?: number }, options?: RequestOptions): Promise<EngagementExecution[]> {
+    return this.http.get<EngagementExecution[]>(`/engagement-rules/${ruleId}/executions`, params, options)
+  }
+
+  async cancelExecution(executionId: string, options?: RequestOptions): Promise<EngagementExecution> {
+    return this.http.post<EngagementExecution>(`/engagement-rules/executions/${executionId}/cancel`, {}, options)
+  }
+
+  /** Close the loop: tell the platform a message was replied to or converted. */
+  async recordOutcome(ruleId: string, body: RecordEngagementOutcomeRequest, options?: RequestOptions): Promise<unknown> {
+    return this.http.post<unknown>(`/engagement-rules/${ruleId}/outcomes`, body, options)
   }
 }

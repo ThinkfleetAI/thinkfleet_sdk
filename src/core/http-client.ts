@@ -9,7 +9,7 @@ import {
   TimeoutError,
 } from './errors.js'
 import { rewriteLegacyPiecePrefixDeep } from './piece-name.js'
-import type { HttpClientOptions, RequestOptions } from './types.js'
+import type { HttpClientOptions, QueryParams, RequestOptions } from './types.js'
 
 export class HttpClient {
   private readonly options: HttpClientOptions
@@ -18,7 +18,7 @@ export class HttpClient {
     this.options = options
   }
 
-  async get<T>(path: string, params?: Record<string, string | number | boolean | undefined>, requestOptions?: RequestOptions): Promise<T> {
+  async get<T>(path: string, params?: QueryParams, requestOptions?: RequestOptions): Promise<T> {
     const url = this.buildUrl(path, params, requestOptions)
     return this.request<T>(url, { method: 'GET' }, requestOptions)
   }
@@ -28,7 +28,7 @@ export class HttpClient {
    * JSON. Used for endpoints that emit YAML, plain text, or another non-JSON
    * format.
    */
-  async getText(path: string, params?: Record<string, string | number | boolean | undefined>, requestOptions?: RequestOptions): Promise<string> {
+  async getText(path: string, params?: QueryParams, requestOptions?: RequestOptions): Promise<string> {
     const url = this.buildUrl(path, params, requestOptions)
     const timeout = requestOptions?.timeout ?? this.options.timeout
     const controller = new AbortController()
@@ -95,7 +95,7 @@ export class HttpClient {
    * const allFlows = await http.listAll<Flow>('/flows')
    * ```
    */
-  async listAll<T>(path: string, params?: Record<string, string | number | boolean | undefined>, requestOptions?: RequestOptions): Promise<T[]> {
+  async listAll<T>(path: string, params?: QueryParams, requestOptions?: RequestOptions): Promise<T[]> {
     const all: T[] = []
     let cursor: string | null = null
     const limit = 100
@@ -238,7 +238,7 @@ export class HttpClient {
     }
   }
 
-  private buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>, requestOptions?: RequestOptions): string {
+  private buildUrl(path: string, params?: QueryParams, requestOptions?: RequestOptions): string {
     const base = requestOptions?.rawPath
       ? `${this.options.baseUrl}/api/v1${path}`
       : `${this.options.baseUrl}/api/v1/projects/${requestOptions?.projectId ?? this.options.projectId}${path}`
@@ -251,13 +251,58 @@ export class HttpClient {
     if (Object.keys(mergedParams).length === 0) return base
 
     const searchParams = new URLSearchParams()
-    for (const [key, value] of Object.entries(mergedParams)) {
-      if (value !== undefined) {
+    for (const [key, value] of Object.entries(mergedParams) as Array<[string, unknown]>) {
+      if (Array.isArray(value)) {
+        // Repeated keys (?status=A&status=B) for array filters.
+        for (const item of value) searchParams.append(key, String(item))
+      }
+      else if (value !== undefined) {
         searchParams.set(key, String(value))
       }
     }
     const qs = searchParams.toString()
     return qs ? `${base}?${qs}` : base
+  }
+
+  /** API origin, e.g. `https://app.thinkfleet.ai`. */
+  get baseUrl(): string {
+    return this.options.baseUrl
+  }
+
+  /** Default project ID. */
+  get projectId(): string {
+    return this.options.projectId
+  }
+
+  /**
+   * Absolute URL for a path under `/api/v1` (`rawPath`) or under the
+   * project (`/api/v1/projects/:projectId`).
+   */
+  url(path: string, requestOptions?: RequestOptions): string {
+    return this.buildUrl(path, undefined, requestOptions)
+  }
+
+  /**
+   * Fetch with the client's fetch implementation and timeout but WITHOUT the
+   * API key. Used for endpoints that take their own credential: a Function's
+   * `fnk_` key or the MCP server token.
+   */
+  async fetchWithTimeout(url: string, init: RequestInit, requestOptions?: RequestOptions): Promise<Response> {
+    const timeout = requestOptions?.timeout ?? this.options.timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    try {
+      return await this.options.fetchFn(url, { ...init, signal: requestOptions?.signal ?? controller.signal })
+    }
+    catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new TimeoutError(`Request timed out after ${timeout}ms`)
+      }
+      throw new ThinkFleetError(`Network error: ${(error as Error).message}`, 0, 'NETWORK_ERROR')
+    }
+    finally {
+      clearTimeout(timeoutId)
+    }
   }
 
   private async request<T>(url: string, init: RequestInit, requestOptions?: RequestOptions): Promise<T> {

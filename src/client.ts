@@ -1,26 +1,20 @@
 import { HttpClient } from './core/http-client.js'
-import { AgentsResource } from './resources/agents.js'
-import { TasksResource } from './resources/tasks.js'
-import { KnowledgeBasesResource } from './resources/knowledge-bases.js'
-import { McpResource } from './resources/mcp.js'
-import { CrewsResource } from './resources/crews.js'
 import { ConnectionsResource } from './resources/connections.js'
-import { VoiceResource } from './resources/voice.js'
-import { MemoryResource } from './resources/memory.js'
-import { FlowsResource } from './resources/flows.js'
-import { FlowRunsResource } from './resources/flow-runs.js'
-import { LocationsResource } from './resources/locations.js'
-import { ProjectsResource } from './resources/projects.js'
-import { GuardrailsResource } from './resources/guardrails.js'
-import { ShieldResource } from './resources/shield.js'
-import { OAuthResource } from './resources/oauth.js'
-import { OrgChartResource } from './resources/org-chart.js'
 import { ContactsResource } from './resources/contacts.js'
-import { MessageTemplatesResource } from './resources/message-templates.js'
+import { DatabasesResource } from './resources/databases.js'
 import { EngagementResource } from './resources/engagement.js'
-import { MediaResource } from './resources/media.js'
 import { EventDestinationsResource } from './resources/event-destinations.js'
+import { FlowRunsResource } from './resources/flow-runs.js'
+import { FlowsResource } from './resources/flows.js'
+import { FunctionsResource } from './resources/functions.js'
+import { GuardrailsResource } from './resources/guardrails.js'
+import { KnowledgeBasesResource } from './resources/knowledge-bases.js'
 import { LatticeResource } from './resources/lattice.js'
+import { LocationsResource } from './resources/locations.js'
+import { McpResource } from './resources/mcp.js'
+import { OAuthResource } from './resources/oauth.js'
+import { ProjectsResource } from './resources/projects.js'
+import { SecretManagersResource } from './resources/secret-managers.js'
 
 export interface ThinkFleetOptions {
   /** API key in the format `sk-XXXXX...` */
@@ -31,35 +25,29 @@ export interface ThinkFleetOptions {
   baseUrl?: string
   /** Maximum number of retries for failed requests (default: 2) */
   maxRetries?: number
-  /** Default timeout in milliseconds (default: 30000). Agent chat uses 120000ms. */
+  /** Default timeout in milliseconds (default: 30000). */
   timeout?: number
   /** Custom fetch implementation for environments without native fetch */
   fetch?: typeof globalThis.fetch
 }
 
 export class ThinkFleet {
-  readonly agents: AgentsResource
-  readonly tasks: TasksResource
+  readonly functions: FunctionsResource
+  readonly databases: DatabasesResource
+  readonly contacts: ContactsResource
+  readonly lattice: LatticeResource
+  readonly engagement: EngagementResource
   readonly knowledgeBases: KnowledgeBasesResource
   readonly mcp: McpResource
-  readonly crews: CrewsResource
   readonly connections: ConnectionsResource
-  readonly voice: VoiceResource
-  readonly memory: MemoryResource
   readonly flows: FlowsResource
   readonly flowRuns: FlowRunsResource
   readonly locations: LocationsResource
   readonly projects: ProjectsResource
   readonly guardrails: GuardrailsResource
-  readonly shield: ShieldResource
   readonly oauth: OAuthResource
-  readonly orgChart: OrgChartResource
-  readonly contacts: ContactsResource
-  readonly messageTemplates: MessageTemplatesResource
-  readonly engagement: EngagementResource
-  readonly media: MediaResource
   readonly eventDestinations: EventDestinationsResource
-  readonly lattice: LatticeResource
+  readonly secretManagers: SecretManagersResource
 
   constructor(options: ThinkFleetOptions) {
     if (!options.apiKey) {
@@ -78,27 +66,21 @@ export class ThinkFleet {
       fetchFn: options.fetch ?? globalThis.fetch.bind(globalThis),
     })
 
-    this.agents = new AgentsResource(http)
-    this.tasks = new TasksResource(http)
+    this.functions = new FunctionsResource(http)
+    this.databases = new DatabasesResource(http)
+    this.contacts = new ContactsResource(http)
+    this.lattice = new LatticeResource(http)
+    this.engagement = new EngagementResource(http)
     this.knowledgeBases = new KnowledgeBasesResource(http)
     this.mcp = new McpResource(http)
-    this.crews = new CrewsResource(http)
     this.connections = new ConnectionsResource(http)
-    this.voice = new VoiceResource(http)
-    this.memory = new MemoryResource(http)
     this.flows = new FlowsResource(http, options.projectId)
     this.flowRuns = new FlowRunsResource(http, options.projectId)
     this.locations = new LocationsResource(http)
     this.projects = new ProjectsResource(http)
     this.guardrails = new GuardrailsResource(http)
-    this.shield = new ShieldResource(http)
     this.oauth = new OAuthResource(http)
-    this.orgChart = new OrgChartResource(http)
-    this.contacts = new ContactsResource(http)
-    this.messageTemplates = new MessageTemplatesResource(http)
-    this.engagement = new EngagementResource(http)
-    this.media = new MediaResource(http)
     this.eventDestinations = new EventDestinationsResource(http)
-    this.lattice = new LatticeResource(http)
+    this.secretManagers = new SecretManagersResource(http)
   }
 }
