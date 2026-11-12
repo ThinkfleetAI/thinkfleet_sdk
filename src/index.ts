@@ -13,7 +13,7 @@ export {
   TimeoutError,
 } from './core/errors.js'
 
-export type { SeekPage, RequestOptions, RequestInterceptor, ResponseInterceptor } from './core/types.js'
+export type { SeekPage, RequestOptions, RequestInterceptor, ResponseInterceptor, QueryParams } from './core/types.js'
 export {
   normalizePieceName,
   denormalizeLegacyPiecePrefix,
@@ -21,14 +21,20 @@ export {
 } from './core/piece-name.js'
 
 // Resources
-export { AgentsResource, AgentToolsResource } from './resources/agents.js'
-export { TasksResource } from './resources/tasks.js'
 export { KnowledgeBasesResource, KnowledgeBaseDocumentsResource, KnowledgeBaseSourcesResource } from './resources/knowledge-bases.js'
-export { McpResource, McpIntegrationsResource, McpExternalServersResource, type McpSkillsManifest } from './resources/mcp.js'
-export { CrewsResource, CrewColumnsResource, CrewTasksResource } from './resources/crews.js'
+export { McpResource, McpToolCallsResource } from './resources/mcp.js'
+export { FunctionsResource } from './resources/functions.js'
+export { DatabasesResource } from './resources/databases.js'
+export { ContactsResource } from './resources/contacts.js'
+export { LatticeResource } from './resources/lattice.js'
+export {
+  EngagementResource,
+  EngagementRulesResource,
+  PromotionsResource,
+  DispatchLogResource,
+  EngagementSettingsResource,
+} from './resources/engagement.js'
 export { ConnectionsResource, GlobalConnectionsResource } from './resources/connections.js'
-export { VoiceResource } from './resources/voice.js'
-export { MemoryResource, AdminMemoryResource, ProjectMemoryResource } from './resources/memory.js'
 export { FlowsResource } from './resources/flows.js'
 export { FlowRunsResource } from './resources/flow-runs.js'
 export { LocationsResource } from './resources/locations.js'
@@ -56,61 +62,6 @@ export type {
 } from './types/flows.js'
 export { TERMINAL_FLOW_RUN_STATUSES } from './types/flows.js'
 
-// Types — Memory (backward-compatible + new)
-export type {
-  MemorySearchResponse,
-  SaveMemoryRequest,
-  SaveMemoryResponse,
-} from './resources/memory.js'
-
-// Types — Agents
-export type {
-  Agent,
-  PopulatedAgent,
-  AgentTool,
-  AgentAppearance,
-  VoiceConfig,
-  DataSchemaField,
-  CreateAgentRequest,
-  UpdateAgentRequest,
-  ChatRequest,
-  ChatResponse,
-  ChatUsage,
-  ChatMessage,
-  AddIntegrationToolRequest,
-  AddFlowToolRequest,
-  AddKnowledgeBaseToolRequest,
-  AddDataSchemaToolRequest,
-  UpdateToolRequest,
-} from './types/agents.js'
-export {
-  AgentStatus,
-  AgentVisibility,
-  AiProvider,
-  WorkerRuntime,
-  VoiceProvider,
-  ToolType,
-  AttachmentType,
-} from './types/agents.js'
-
-// Types — Tasks
-export type {
-  ClassifyTaskRequest,
-  ClassifyTaskResponse,
-  DispatchTaskRequest,
-  DispatchTaskResponse,
-  DispatchCrewRequest,
-  DispatchCrewResponse,
-  SendTaskMessageRequest,
-  TaskSessionMessage,
-  TaskSessionHistoryResponse,
-  ConnectedService,
-  RecentSession,
-  HomeFeedResponse,
-  ListTaskHistoryParams,
-} from './types/tasks.js'
-export { TaskComplexity, TaskType } from './types/tasks.js'
-
 // Types — Knowledge Base
 export type {
   KnowledgeBase,
@@ -127,57 +78,13 @@ export type {
 } from './types/knowledge-bases.js'
 export { DocumentStatus, SourceProvider, SourceStatus } from './types/knowledge-bases.js'
 
-// Types — MCP
-export type {
-  McpServer,
-  PopulatedMcpServer,
-  McpIntegration,
-  McpExternalServer,
-  AddIntegrationRequest,
-  BatchAddIntegrationRequest,
-  UpdateIntegrationRequest,
-  UpdateMcpServerRequest,
-  AddExternalServerRequest,
-  UpdateExternalServerRequest,
-} from './types/mcp.js'
-export { McpServerStatus } from './types/mcp.js'
-
-// Types — Crews
-export type {
-  Crew,
-  CrewMember,
-  CrewExecution,
-  CrewProject,
-  BoardColumn,
-  BoardColumnWithTasks,
-  BoardTask,
-  ColumnRule,
-  FlowHook,
-  ProjectBoardResponse,
-  BoardTaskExecutionResponse,
-  CostSummary,
-  CreateCrewRequest,
-  UpdateCrewRequest,
-  ExecuteCrewRequest,
-  CreateCrewProjectRequest,
-  UpdateCrewProjectRequest,
-  CreateBoardColumnRequest,
-  UpdateBoardColumnRequest,
-  ReorderColumnsRequest,
-  CreateBoardTaskRequest,
-  UpdateBoardTaskRequest,
-  MoveTaskRequest,
-  RunBoardTaskRequest,
-} from './types/crews.js'
-export {
-  CrewStatus,
-  CrewProjectStatus,
-  CrewExecutionStatus,
-  BoardTaskStatus,
-  BoardTaskPriority,
-  BoardTaskExecutionStatus,
-  ColumnModelTier,
-} from './types/crews.js'
+// Types — MCP, Functions, Databases, customer intelligence
+export type * from './types/mcp.js'
+export type * from './types/functions.js'
+export type * from './types/databases.js'
+export type * from './types/contacts.js'
+export type * from './types/lattice.js'
+export type * from './types/engagement.js'
 
 // Types — Connections (Native OAuth)
 export type {
@@ -198,17 +105,6 @@ export type {
   RemoveProjectsFromGlobalConnectionRequest,
 } from './types/connections.js'
 
-// Types — Voice
-export type { VoiceCatalogEntry, SynthesizeVoiceRequest } from './types/voice.js'
-export {
-  DEEPGRAM_VOICES,
-  ELEVENLABS_VOICES,
-  OPENAI_VOICES,
-  ALL_VOICES,
-  getVoicesByProvider,
-  getDefaultVoiceId,
-} from './types/voice.js'
-
 // Types — Flows
 export type {
   Flow,
@@ -225,28 +121,6 @@ export type {
   FlowRunResponse,
 } from './types/flows.js'
 export { FlowStatus } from './types/flows.js'
-
-// Types — Memory (full)
-export type {
-  MemoryItem,
-  CreateMemoryRequest,
-  UpdateMemoryRequest,
-  ConfirmMemoryRequest,
-  PromoteMemoryRequest,
-  MemorySearchRequest,
-  MemorySearchResult,
-  MemoryFeedback,
-  SubmitFeedbackRequest,
-  ListMemoryParams,
-  MemoryStats,
-} from './types/memory.js'
-export {
-  MemoryItemType,
-  MemoryScope,
-  MemoryStatus,
-  MemoryImpact,
-  MemoryFeedbackRating,
-} from './types/memory.js'
 
 // Types — Projects
 export type {
@@ -285,16 +159,6 @@ export {
   ModelAccessMode,
 } from './types/guardrails.js'
 
-// Resources — Shield (AI Proxy Governance)
-export { ShieldResource } from './resources/shield.js'
-export type {
-  ShieldOverview,
-  ShieldRequest,
-  ShieldCostAnalytics,
-  ShieldDeveloperBreakdown,
-  ListShieldRequestsParams,
-} from './types/shield.js'
-
 // Resources — Event Destinations (webhook subscriptions for platform events)
 export { EventDestinationsResource } from './resources/event-destinations.js'
 export type {
@@ -305,39 +169,6 @@ export type {
   TestEventDestinationRequest,
 } from './types/event-destinations.js'
 export { ApplicationEventName } from './types/event-destinations.js'
-
-// Resources — Lattice (behavioral pattern intelligence)
-export { LatticeResource } from './resources/lattice.js'
-export type {
-  BehaviorPatternKind,
-  Cadence,
-  BehaviorPatternMetadata,
-  ExtractPatternsRequest,
-  ContactExtractError,
-  ExtractPatternsResult,
-  PatternFailure,
-  MonitorTickResult,
-  LatticeContactSummary,
-  ListLatticeContactsParams,
-  ListLatticeContactsResponse,
-  PatternSummary,
-  ListPatternsParams,
-  ListPatternsResponse,
-  ContactContextContact,
-  ContactContextEvent,
-  ContactContextMemory,
-  ContactContextResponse,
-  GetContextParams,
-  LatticeSearchScope,
-  LatticeSearchContactHit,
-  LatticeSearchEventHit,
-  LatticeSearchPatternHit,
-  LatticeSearchParams,
-  LatticeSearchResponse,
-  RunDemoSeedRequest,
-  RunDemoSeedTemplateResult,
-  RunDemoSeedResult,
-} from './types/lattice.js'
 
 // Resources — OAuth (Provider Registry + Credential Governance)
 export { OAuthResource, OAuthProvidersResource, OAuthConfigsResource } from './resources/oauth.js'
@@ -353,88 +184,23 @@ export type {
   ListProvidersParams,
 } from './types/oauth.js'
 
-// Resources — Org Chart (Enterprise Agent Orchestration)
-export { OrgChartResource, OrgPositionsResource, OrgGoalsResource, OrgConnectedAgentsResource } from './resources/org-chart.js'
-export type {
-  OrgPosition,
-  PopulatedOrgPosition,
-  Goal,
-  KeyResult,
-  BudgetRequest,
-  ConnectedAgent,
-  PositionRuntimeConfig,
-  CreatePositionRequest,
-  UpdatePositionRequest,
-  CreateGoalRequest,
-  UpdateGoalRequest,
-  RegisterAgentRequest,
-  OrgCostSummary,
-} from './types/org-chart.js'
+// Resources — Secret Managers (BYO external vault for connection secrets)
+export { SecretManagersResource } from './resources/secret-managers.js'
 export {
-  AutonomyLevel,
-  GoalStatus,
-  RuntimeType,
-} from './types/org-chart.js'
-
-// Resources — Contacts (CRM-like records that anchor agent memory)
-export { ContactsResource } from './resources/contacts.js'
+  SecretManagerProvider,
+  SecretManagerScope,
+  SECRET_MANAGER_FIELDS_SEPARATOR,
+  buildSecretReference,
+} from './types/secret-managers.js'
 export type {
-  ContactSegment,
-  ClawdbotContact,
-  CreateContactRequest,
-  UpdateContactRequest,
-  LookupContactRequest,
-  LookupContactResponse,
-  ContactProfile,
-  ContactProfilePreference,
-  ContactProfileFact,
-  ContactProfilePatterns,
-  ContactProfileEventRef,
-  ContactProfileRawMemory,
-  ContactEventType,
-  ClawdbotContactEvent,
-  CreateContactEventRequest,
-} from './types/contacts.js'
-
-// Resources — Message Templates (memory-aware rendering with A/B + channel policies)
-export { MessageTemplatesResource } from './resources/message-templates.js'
-export type {
-  MessageTemplateChannel,
-  MessageTemplateVariant,
-  ClawdbotMessageTemplate,
-  CreateMessageTemplateRequest,
-  UpdateMessageTemplateRequest,
-  ChannelPolicy,
-  ChannelPolicyWarning,
-  ChannelPolicyWarningSeverity,
-  RenderedMessageTemplate,
-  RenderMessageTemplateRequest,
-  PreviewMessageTemplateRequest,
-} from './types/message-templates.js'
-export {
-  renderLocal,
-  type RenderLocalContext,
-  type RenderLocalInput,
-  type RenderLocalResult,
-} from './utils/render-local.js'
-
-// Resources — Engagement (promotions + dispatch log + project settings)
-export {
-  EngagementResource,
-  PromotionsResource,
-  DispatchLogResource,
-  EngagementSettingsResource,
-} from './resources/engagement.js'
-export type {
-  PromotionDiscountType,
-  ClawdbotEngagementPromotion,
-  CreateEngagementPromotionRequest,
-  MarkPromotionRedeemedRequest,
-  EngagementDispatchPath,
-  EngagementDispatchStatus,
-  ClawdbotEngagementDispatchLog,
-  ListEngagementDispatchLogRequest,
-  EngagementDispatchStats,
-  ClawdbotEngagementSettings,
-  UpdateEngagementSettingsRequest,
-} from './types/engagement.js'
+  HashicorpConfig,
+  AwsSecretsManagerConfig,
+  CyberArkConfig,
+  OnePasswordConfig,
+  SecretManagerConfig,
+  SecretManagerConnection,
+  SecretManagerConnectionStatus,
+  SecretManagerConnectionWithStatus,
+  ConnectSecretManagerRequest,
+  ListSecretManagersParams,
+} from './types/secret-managers.js'

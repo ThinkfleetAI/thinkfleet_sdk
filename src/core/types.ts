@@ -32,3 +32,6 @@ export interface HttpClientOptions {
   /** Middleware hooks called after each response (before JSON parsing). */
   responseInterceptors?: ResponseInterceptor[]
 }
+
+/** Query string values. Arrays are sent as repeated keys. */
+export type QueryParams = Record<string, string | number | boolean | string[] | undefined>

@@ -1,5 +1,85 @@
 # Changelog
 
+## 0.9.0 — 2026-11-12
+
+Adds Functions, Databases and a working MCP client, and brings customer
+intelligence back. 0.8.0 was never published, so this release also carries its
+removals (see below); upgrading from 0.6.0/0.7.0 means reading both entries.
+
+### Added
+
+- **Functions** (`tf.functions`): your code in a sandbox, exposed as an API, a
+  flow step and an MCP tool. `list/get/create/update/delete`, `run()` (API key),
+  `test()` (unsaved code), `listRuns()`, `rotateKey()`, plus `invoke()` and
+  `publicUrl()` for the public `/api/v1/fn/:id` endpoint with the function's
+  `fnk_` key.
+- **Databases** (`tf.databases`): connect Postgres for `ctx.db.<name>`, then
+  `test()`, `schema()`, `query()`, and the `find()` (FQL) and `sql()` shorthands.
+- **MCP client**: `tf.mcp.listTools()` and `tf.mcp.callTool()` speak JSON-RPC
+  to the project's Streamable HTTP endpoint (JSON or SSE replies);
+  `tf.mcp.toolCalls.list()` reads the audit log; `tf.mcp.url()` and
+  `tf.mcp.claudeCodeCommand()`.
+- **Engagement rules** (`tf.engagement.rules`): `list/create/update/delete`,
+  `run()`, `listExecutions()`, `cancelExecution()`, `recordOutcome()`.
+- `tf.contacts.listAll()`, `listEventTypes()` and `deleteEvent()`.
+- Query parameters accept arrays, sent as repeated keys.
+
+### Restored
+
+- `tf.contacts`, `tf.lattice` and `tf.engagement` (removed in the unpublished
+  0.8.0) are back and checked against the current API.
+
+### Changed (BREAKING)
+
+- `tf.mcp.update()` takes `{ disabledTools }`. The server has no `status` field
+  any more, so `McpServerStatus` is gone. `McpServer` now has `type`,
+  `platformId` and `disabledTools`.
+
+### Removed (BREAKING)
+
+These called routes that no longer exist on the API (they returned 404):
+
+- `tf.mcp.integrations`, `tf.mcp.externalServers`, `tf.mcp.skills()` and
+  `tf.mcp.skillsOpenApi()`, plus their types.
+- `tf.lattice.observe()` and `tf.lattice.runDemoSeed()`, plus their types.
+
+### Requires
+
+- MCP management with an API key (`tf.mcp.get/update/rotateToken/toolCalls`)
+  needs Flobyte with ThinkfleetAI/flobyteAI#878. Before that the API returns 403
+  to API keys on those routes.
+
+## 0.8.0 — 2026-06-11
+
+Aligns the SDK with the platform's **MCP + Flows + Connect** product refocus.
+
+### Added
+
+- **Secret Managers** (`tf.secretManagers`) — bring-your-own external vault for
+  connection secrets. Connect HashiCorp Vault, AWS Secrets Manager, CyberArk
+  Conjur, or 1Password; reference secrets from connection values via
+  `buildSecretReference(connectionId, path)`. Secrets are resolved from your
+  vault at flow run time and never stored in ThinkFleet's database.
+  - `connect()`, `list()`, `update()`, `delete()`
+  - Types: `SecretManagerProvider`, `SecretManagerScope`,
+    `ConnectSecretManagerRequest`, `SecretManagerConnectionWithStatus`, etc.
+
+### Removed (BREAKING)
+
+The following resources were removed as the product narrows to MCP, Flows,
+Connections, and Knowledge Base. Pre-1.0, so this is a minor bump.
+
+- `tf.agents`, `tf.crews`, `tf.tasks` (AI-agent stack)
+- `tf.memory`, `tf.contacts`, `tf.lattice` (Memory is now its own product)
+- `tf.orgChart`, `tf.engagement`
+- `tf.voice`, `tf.media`, `tf.messageTemplates`, `tf.shield`
+- The `renderLocal()` utility (message-template renderer) and all types
+  exported from the above modules.
+
+**Retained:** `flows`, `flowRuns`, `mcp`, `connections`, `knowledgeBases`,
+`locations`, `projects`, `guardrails`, `oauth`, `eventDestinations`,
+`secretManagers`.
+
 ## 0.7.0 — 2026-05-18
 
 ### Changed

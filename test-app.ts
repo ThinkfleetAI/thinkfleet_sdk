@@ -523,7 +523,7 @@ async function testMcp() {
   await test('get MCP server', async () => {
     const server = await tf.mcp.get()
     assert(server !== undefined, 'should return server config')
-    console.log(`     Status: ${server.status}`)
+    console.log(`     Type: ${server.type}, disabled tools: ${server.disabledTools?.length ?? 0}`)
   })
 
   await test('get MCP connection info', async () => {
@@ -532,31 +532,19 @@ async function testMcp() {
     assert(typeof info.token === 'string' && info.token.length > 0, 'should return token')
   })
 
-  await test('list MCP integrations (piece tools)', async () => {
-    const integrations = await tf.mcp.integrations.list()
-    assert(Array.isArray(integrations), 'should return array')
-    console.log(`     Integrations: ${integrations.length}`)
+  await test('list MCP tools over JSON-RPC', async () => {
+    const tools = await tf.mcp.listTools()
+    assert(Array.isArray(tools) && tools.length > 0, 'should advertise tools')
+    console.log(`     Tools: ${tools.length} (${tools.slice(0, 5).map(t => t.name).join(', ')})`)
   })
 
-  await test('list MCP external servers', async () => {
-    const servers = await tf.mcp.externalServers.list()
-    assert(Array.isArray(servers), 'should return array')
-    console.log(`     External servers: ${servers.length}`)
-  })
-
-  await test('get MCP skills (Claude format)', async () => {
-    const skills = await tf.mcp.skills()
-    assert(skills !== undefined, 'should return skills')
-  })
-
-  await test('get MCP skills OpenAPI', async () => {
-    const yaml = await tf.mcp.skillsOpenApi()
-    assert(typeof yaml === 'string' && yaml.length > 0, 'should return YAML string')
+  await test('list MCP tool calls (audit log)', async () => {
+    const page = await tf.mcp.toolCalls.list({ limit: 5 })
+    assert(Array.isArray(page.data), 'should return a page')
   })
 
   skip('mcp.update / rotateToken', 'would invalidate clients connected to MCP server')
-  skip('mcp.integrations.add / batchAdd / update / delete', 'covered in dashboard tests')
-  skip('mcp.externalServers.add / update / delete', 'requires specific MCP server URL')
+  skip('mcp.callTool', 'tool side effects depend on the project')
 }
 
 // ── 8. Crews ────────────────────────────────────────────────────────

@@ -12,10 +12,6 @@ import type {
   ListPatternsParams,
   ListPatternsResponse,
   MonitorTickResult,
-  ObserveActivityRequest,
-  ObserveActivityResult,
-  RunDemoSeedRequest,
-  RunDemoSeedResult,
 } from '../types/lattice.js'
 
 /**
@@ -154,65 +150,5 @@ export class LatticeResource {
       query.types = params.types.join(',')
     }
     return this.http.get<LatticeSearchResponse>('/lattice/search', query, options)
-  }
-
-  /**
-   * Generate synthetic contacts + purchase events with embedded
-   * Sarah-style patterns. **Dev / QA only** — gated server-side by
-   * `AP_ALLOW_DEMO_SEED=true`; production calls return 403.
-   *
-   * Useful for smoke-testing the full pipeline: seed → extract →
-   * tick → see PATTERN_BREAK fire on the synthetic contacts.
-   */
-  async runDemoSeed(
-    body: RunDemoSeedRequest = {},
-    options?: RequestOptions,
-  ): Promise<RunDemoSeedResult> {
-    return this.http.post<RunDemoSeedResult>('/lattice/demo/seed', body, options)
-  }
-
-  /**
-   * Record a generic activity for any subject — contact, user,
-   * workspace, or service. The engine mines patterns from these
-   * events the same way it mines from contact events.
-   *
-   * Use this for non-contact subjects (developers, employees, local
-   * workstations, headless services). For traditional contact events,
-   * keep using the existing contact-events route — those are still
-   * mirrored into `lattice_activity` automatically server-side, so the
-   * engine sees both sources uniformly.
-   *
-   * Rate-limited at 600 calls/minute/project, so a backfill of a few
-   * hundred recent events from a desktop client fits in one batch.
-   *
-   * @example
-   * ```ts
-   * // Workspace usage tracking
-   * await tf.lattice.observe({
-   *   subjectType: 'workspace',
-   *   subjectId: 'ryan@desktop',
-   *   activityType: 'tool_invoked',
-   *   title: 'GitHub MCP — list_issues',
-   *   activityData: { tool: 'github-mcp', operation: 'list_issues' },
-   *   occurredAt: new Date().toISOString(),
-   *   source: 'sdk',
-   * })
-   *
-   * // Dev workflow
-   * await tf.lattice.observe({
-   *   subjectType: 'user',
-   *   subjectId: userId,
-   *   activityType: 'code_commit',
-   *   title: 'feat: add Lattice observe()',
-   *   activityData: { repo: 'thinkfleet_sdk', branch: 'main', files: 3 },
-   *   occurredAt: new Date().toISOString(),
-   * })
-   * ```
-   */
-  async observe(
-    body: ObserveActivityRequest,
-    options?: RequestOptions,
-  ): Promise<ObserveActivityResult> {
-    return this.http.post<ObserveActivityResult>('/lattice/activity', body, options)
   }
 }

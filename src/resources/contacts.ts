@@ -65,6 +65,11 @@ export class ContactsResource {
 
   // ─── project-scoped lookup + profile ─────────────────────────────
 
+  /** Every contact in the project (first 500 by priority) and the total count. */
+  async listAll(options?: RequestOptions): Promise<{ contacts: ClawdbotContact[]; total: number }> {
+    return this.http.get<{ contacts: ClawdbotContact[]; total: number }>('/contacts', undefined, options)
+  }
+
   /**
    * Look up a contact by phone, email, or external system ID. Optionally
    * auto-creates if no contact matches.
@@ -136,5 +141,15 @@ export class ContactsResource {
       params as Record<string, string | number | boolean | undefined>,
       options,
     )
+  }
+
+  /** Event types in use in this project, for building filters and engagement triggers. */
+  async listEventTypes(options?: RequestOptions): Promise<string[]> {
+    const { types } = await this.http.get<{ types: string[] }>('/contact-events/types', undefined, options)
+    return types
+  }
+
+  async deleteEvent(eventId: string, options?: RequestOptions): Promise<void> {
+    await this.http.delete<void>(`/contact-events/${eventId}`, options)
   }
 }
