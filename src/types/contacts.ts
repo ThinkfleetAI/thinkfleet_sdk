@@ -6,7 +6,7 @@ export interface ClawdbotContact {
   id: string
   created: string
   updated: string
-  chatbotId: string
+  chatbotId: string | null
   projectId: string
   name: string
   phone: string | null

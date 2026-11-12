@@ -168,7 +168,7 @@ export interface EngagementRule {
   created: string
   updated: string
   projectId: string
-  chatbotId: string
+  chatbotId: string | null
   name: string
   description: string | null
   triggerConfig: EngagementTriggerConfig
@@ -183,8 +183,8 @@ export interface EngagementRule {
 }
 
 export interface CreateEngagementRuleRequest {
-  /** Contacts are currently owned by an agent; rules target that agent's contacts. */
-  chatbotId: string
+  /** Legacy: limit the rule to one agent's contacts. Rules belong to the project (and location). */
+  chatbotId?: string
   name: string
   description?: string
   triggerConfig: EngagementTriggerConfig

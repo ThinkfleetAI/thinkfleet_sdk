@@ -167,7 +167,6 @@ export class EngagementSettingsResource {
  * ```ts
  * // Win back a regular whose weekly visit didn't happen (Lattice emits pattern_break)
  * await tf.engagement.rules.create({
- *   chatbotId,
  *   name: 'Missed weekly visit',
  *   triggerConfig: { type: 'event', eventType: 'pattern_break' },
  *   contactFilter: { segments: ['loyal', 'at-risk'] },

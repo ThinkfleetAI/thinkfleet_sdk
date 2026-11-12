@@ -36,7 +36,7 @@ export class HttpClient {
     try {
       const response = await this.options.fetchFn(url, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${this.options.apiKey}` },
+        headers: { 'Authorization': `Bearer ${this.options.apiKey}`, ...this.locationHeader(requestOptions) },
         signal: requestOptions?.signal ?? controller.signal,
       })
       clearTimeout(timeoutId)
@@ -135,6 +135,7 @@ export class HttpClient {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.options.apiKey}`,
+            ...this.locationHeader(requestOptions),
           'Accept': 'text/event-stream',
         },
         body: body != null ? JSON.stringify(body) : undefined,
@@ -217,6 +218,7 @@ export class HttpClient {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.options.apiKey}`,
+            ...this.locationHeader(requestOptions),
         },
         body: body != null ? JSON.stringify(body) : undefined,
         signal: requestOptions?.signal ?? controller.signal,
@@ -262,6 +264,12 @@ export class HttpClient {
     }
     const qs = searchParams.toString()
     return qs ? `${base}?${qs}` : base
+  }
+
+  /** `X-Location-Id` for location-scoped requests (per call, else the client default). */
+  private locationHeader(requestOptions?: RequestOptions): Record<string, string> {
+    const locationId = requestOptions?.locationId ?? this.options.locationId
+    return locationId ? { 'X-Location-Id': locationId } : {}
   }
 
   /** API origin, e.g. `https://app.thinkfleet.ai`. */
@@ -325,6 +333,7 @@ export class HttpClient {
           headers: {
             ...init.headers as Record<string, string>,
             'Authorization': `Bearer ${this.options.apiKey}`,
+            ...this.locationHeader(requestOptions),
           },
           signal: requestOptions?.signal ?? controller.signal,
         }

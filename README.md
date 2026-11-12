@@ -269,14 +269,13 @@ customer's patterns and emits a `pattern_break` event when an expected behavior
 doesn't happen; engagement rules act on it.
 
 ```ts
-const { contact } = await tf.contacts.lookup({ email: 'sam@example.com', autoCreate: true, chatbotId })
+const { contact } = await tf.contacts.lookup({ email: 'sam@example.com', autoCreate: true })
 await tf.contacts.logEvent({ contactId: contact!.id, eventType: 'purchase', title: 'Trail runner', eventData: { sku: 'SS-101', total: 129 } })
 
 await tf.lattice.extractPatterns({ contactId: contact!.id })
 const ctx = await tf.lattice.getContext(contact!.id)   // patterns, recent events, facts — for AI messages
 
 await tf.engagement.rules.create({
-  chatbotId,
   name: 'Missed weekly visit',
   triggerConfig: { type: 'event', eventType: 'pattern_break' },
   contactFilter: { segments: ['loyal', 'at-risk'] },
@@ -286,7 +285,7 @@ await tf.engagement.rules.create({
 await tf.engagement.rules.recordOutcome(ruleId, { contactId: contact!.id, outcome: 'converted' })
 ```
 
-> Contacts and engagement rules currently belong to an agent (`chatbotId`).
+> Customers, Lattice and engagement are segregated by project and location. Pass `locationId` to the client (or per call) to work inside one location; without it you see the whole project. Rules only reach customers in their own location.
 
 ### Secret Managers — BYO external vault
 

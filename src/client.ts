@@ -21,6 +21,11 @@ export interface ThinkFleetOptions {
   apiKey: string
   /** Default project ID for all requests */
   projectId: string
+  /**
+   * Default location for all requests. Customers, Lattice and engagement
+   * data are segregated by location; omit to work across the whole project.
+   */
+  locationId?: string
   /** Base URL of the ThinkFleet API (default: `https://app.thinkfleet.ai`) */
   baseUrl?: string
   /** Maximum number of retries for failed requests (default: 2) */
@@ -60,6 +65,7 @@ export class ThinkFleet {
     const http = new HttpClient({
       apiKey: options.apiKey,
       projectId: options.projectId,
+      locationId: options.locationId,
       baseUrl: (options.baseUrl ?? 'https://app.thinkfleet.ai').replace(/\/+$/, ''),
       maxRetries: options.maxRetries ?? 2,
       timeout: options.timeout ?? 30000,

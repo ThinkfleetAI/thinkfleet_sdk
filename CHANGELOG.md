@@ -22,6 +22,11 @@ removals (see below); upgrading from 0.6.0/0.7.0 means reading both entries.
 - **Engagement rules** (`tf.engagement.rules`): `list/create/update/delete`,
   `run()`, `listExecutions()`, `cancelExecution()`, `recordOutcome()`.
 - `tf.contacts.listAll()`, `listEventTypes()` and `deleteEvent()`.
+- `locationId` on the client and on any call (`X-Location-Id`): customers,
+  Lattice and engagement are segregated by location; without it a call
+  covers the whole project. Needs ThinkfleetAI/flobyteAI location scoping.
+- Engagement rules and contacts no longer need an AI agent (`chatbotId` is
+  optional/nullable).
 - Query parameters accept arrays, sent as repeated keys.
 
 ### Restored

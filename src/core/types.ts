@@ -6,6 +6,11 @@ export interface SeekPage<T> {
 
 export interface RequestOptions {
   projectId?: string
+  /**
+   * Work inside one location of the project: lists, lookups and new records
+   * are limited to it. Overrides the client's `locationId`.
+   */
+  locationId?: string
   timeout?: number
   signal?: AbortSignal
   /** If true, path is used as-is under /api/v1/ without /projects/:projectId/ prefix */
@@ -23,6 +28,7 @@ export type ResponseInterceptor = (response: Response, url: string) => Response 
 export interface HttpClientOptions {
   apiKey: string
   projectId: string
+  locationId?: string
   baseUrl: string
   maxRetries: number
   timeout: number

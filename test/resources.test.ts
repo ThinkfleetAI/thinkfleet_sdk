@@ -307,6 +307,18 @@ describe('customer intelligence resources', () => {
     ])
   })
 
+  it('sends X-Location-Id from the client default and per call', async () => {
+    const { mockFetch, calls } = createCapturingFetch()
+    const tf = new ThinkFleet({ apiKey: 'sk-test-key', projectId: 'proj-abc', baseUrl: 'https://api.test.com', locationId: 'loc-a', fetch: mockFetch })
+    await tf.contacts.listAll()
+    await tf.engagement.rules.list({ locationId: 'loc-b' })
+    await createClient(mockFetch).lattice.listContacts()
+    const header = (i: number) => (calls[i].init.headers as Record<string, string>)['X-Location-Id']
+    expect(header(0)).toBe('loc-a')
+    expect(header(1)).toBe('loc-b')
+    expect(header(2)).toBeUndefined()
+  })
+
   it('drops lattice methods whose routes no longer exist', () => {
     const tf = createClient(vi.fn()) as any
     expect(tf.lattice.observe).toBeUndefined()
